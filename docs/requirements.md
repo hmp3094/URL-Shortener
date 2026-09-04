@@ -79,8 +79,8 @@ of this API, which has neither).
 9. Reject a creation request — without creating any mapping — when the submitted URL fails
    validation (missing, malformed, disallowed scheme, or disallowed target address), and report a
    clear reason.
-10. Limit how many creation requests a single caller can make in a given time window, to prevent
-    abuse of the creation endpoint.
+10. Limit how many creation requests and how many stats requests a single caller can make in a
+    given time window (sharing one budget between the two), to prevent abuse of either endpoint.
 11. A created short link remains resolvable indefinitely (no automatic expiration in this
     version).
 12. Count how many times each short link has been resolved via redirect, and record when it was

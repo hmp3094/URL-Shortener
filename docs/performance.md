@@ -23,21 +23,34 @@ done
 
 ## Results (200 sequential requests, cache-hit path)
 
-| Metric | Value |
-|---|---|
-| min | 4.1 ms |
-| p50 | 5.1 ms |
-| p95 | 6.9 ms |
-| p99 | 7.7 ms |
-| max | 9.5 ms |
+| Metric | Baseline (core redirect only) | With click tracking | Change |
+|---|---|---|---|
+| min | 4.1 ms | 6.8 ms | +2.7 ms |
+| p50 | 5.1 ms | 8.4 ms | +3.3 ms (+65%) |
+| p95 | 6.9 ms | 9.8 ms | +2.9 ms (+42%) |
+| p99 | 7.7 ms | 11.2 ms | +3.5 ms |
+| max | 9.5 ms | 13.2 ms | +3.7 ms |
+
+## Regression: click tracking adds a database write to every redirect
+
+The "with click tracking" column is a real, measured regression against the original baseline,
+not noise — every redirect now performs an atomic `UPDATE` against Postgres to record the click
+(see `docs/design-decisions.md`'s "Click tracking: exact vs. approximate counting"), even when the
+destination lookup itself was served from cache. That's the expected, already-reasoned-through
+cost of choosing exact counts over keeping every redirect off the database. The regression is
+consistent with that trade-off (a few milliseconds per redirect, on a local single-instance setup)
+and is accepted rather than treated as a defect — it's the documented consequence of a deliberate
+design decision, not a surprise. If redirect latency at this cost ever became a problem, the
+documented next step is the same one named in the design doc: move click counting to a
+batched/async write instead of a synchronous one per redirect.
 
 ## Notes
 
 - This measures the cache-hit path only (the code was resolved once beforehand to warm the
   cache), which is the common case. A cache miss (first-ever request for a code, hitting
-  Postgres) wasn't separately measured; given the query is a single indexed lookup, it's expected
-  to add low single-digit milliseconds locally, but this isn't empirically confirmed.
-- No earlier baseline exists to compare against — this measurement becomes the baseline for
-  future changes to the redirect path.
+  Postgres for both the lookup and the click write) wasn't separately measured.
 - Measured on a developer's local machine via Docker Desktop, not a production-equivalent
   environment; treat these numbers as directional, not an SLA guarantee.
+- Analytics-ingestion lag (event to queryable) is effectively 0 ms here: the click write is
+  synchronous and committed before the redirect response is returned, so a stats read immediately
+  afterward always reflects it.

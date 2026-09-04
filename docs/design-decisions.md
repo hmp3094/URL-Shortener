@@ -104,14 +104,20 @@ decision, and the options weighed against it, are also walked through in
 `docs/scenarios/brownfield-click-analytics.md`, which covers the ambiguity as part of that
 scenario's execution.
 
-## Rate limiting on link creation
+## Rate limiting on link creation and stats
 
 A small hand-rolled in-memory per-IP token bucket (a map keyed by client IP, refilled on a fixed
-schedule), applied via a Spring interceptor on `POST /api/links` only.
+schedule), applied via a Spring interceptor on both `POST /api/links` (creation) and
+`GET /api/links/{code}/stats` (analytics-read) — the two endpoint categories the constitution
+requires rate limiting on. Both share one bucket per IP rather than separate, independently-tuned
+limits; that's a simplification, not a precision requirement anything currently asks for. The
+redirect endpoint itself is deliberately excluded — it's the one path the constitution treats as
+distinct and minimal, not a target for this requirement.
 
-The creation endpoint needs rate limiting, but the logic itself (a token bucket per key) is small
-enough to implement directly without adding a dependency for a genuinely simple, single-instance
-need. Exceeding the limit returns `429 Too Many Requests` with a `Retry-After` header.
+The creation/stats endpoints need rate limiting, but the logic itself (a token bucket per key) is
+small enough to implement directly without adding a dependency for a genuinely simple,
+single-instance need. Exceeding the limit returns `429 Too Many Requests` with a `Retry-After`
+header.
 
 **Alternative considered**: a dedicated rate-limiting library (e.g., Bucket4j) — evaluated and
 rejected for this scope: it would pull in an extra dependency for the same algorithm this feature
