@@ -1,43 +1,38 @@
 package com.urlshortener.link;
 
 import com.urlshortener.link.dto.ErrorResponse;
+import com.urlshortener.link.dto.LinkStatsResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class RedirectController {
+public class StatsController {
 
     private final ShortLinkService shortLinkService;
 
-    public RedirectController(ShortLinkService shortLinkService) {
+    public StatsController(ShortLinkService shortLinkService) {
         this.shortLinkService = shortLinkService;
     }
 
-    // Constrained to exactly 6 alphanumeric characters so this catch-all-looking route can't
-    // shadow other root-level paths such as /swagger-ui.html or /actuator.
-    @Operation(summary = "Resolve a short code and redirect to its long URL")
+    @Operation(summary = "Get click statistics for a short link")
     @ApiResponses({
-            @ApiResponse(responseCode = "302", description = "Redirect to the long URL associated with this short code"),
+            @ApiResponse(responseCode = "200", description = "Current click count and access time for this short code",
+                    content = @Content(schema = @Schema(implementation = LinkStatsResponse.class))),
             @ApiResponse(responseCode = "404", description = "No short link exists for this code",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @GetMapping("/{code:[a-zA-Z0-9]{6}}")
-    public ResponseEntity<Void> redirectToLongUrl(
+    @GetMapping("/api/links/{code}/stats")
+    public ResponseEntity<LinkStatsResponse> getStats(
             @Parameter(description = "6-character short code (case-insensitive)") @PathVariable String code) {
-        ShortLink shortLink = shortLinkService.resolve(code);
-        shortLinkService.recordClick(code);
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .header(HttpHeaders.LOCATION, shortLink.getLongUrl())
-                .build();
+        ShortLink shortLink = shortLinkService.getStatsSnapshot(code);
+        return ResponseEntity.ok(LinkStatsResponse.from(shortLink));
     }
 }

@@ -27,15 +27,24 @@ public class ShortLink {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "click_count", nullable = false)
+    private long clickCount;
+
+    @Column(name = "last_accessed_at")
+    private OffsetDateTime lastAccessedAt;
+
     protected ShortLink() {
         // required by JPA
     }
 
-    public ShortLink(Long id, String shortCode, String longUrl, OffsetDateTime createdAt) {
+    public ShortLink(Long id, String shortCode, String longUrl, OffsetDateTime createdAt,
+            long clickCount, OffsetDateTime lastAccessedAt) {
         this.id = id;
         this.shortCode = shortCode;
         this.longUrl = longUrl;
         this.createdAt = createdAt;
+        this.clickCount = clickCount;
+        this.lastAccessedAt = lastAccessedAt;
     }
 
     public Long getId() {
@@ -52,5 +61,13 @@ public class ShortLink {
 
     public OffsetDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public long getClickCount() {
+        return clickCount;
+    }
+
+    public OffsetDateTime getLastAccessedAt() {
+        return lastAccessedAt;
     }
 }

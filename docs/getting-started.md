@@ -45,6 +45,21 @@ curl -i http://localhost:8080/zzzzzz
 
 Expect `404 Not Found` with an error body (assuming `zzzzzz` was never created).
 
+### Check click stats
+
+```bash
+curl -i http://localhost:8080/api/links/<shortCode-from-first-step>/stats
+```
+
+Expect `200 OK` with `clickCount` and `lastAccessedAt` reflecting how many times you followed the
+redirect above. Before the first redirect, `clickCount` is `0` and `lastAccessedAt` is `null`.
+
+```bash
+curl -i http://localhost:8080/api/links/zzzzzz/stats
+```
+
+Expect `404 Not Found`, same as the redirect endpoint's response for an unknown code.
+
 ### Submit a duplicate URL
 
 Submit the exact same `url` from the first `curl` above a second time. Expect `201 Created`

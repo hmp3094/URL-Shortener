@@ -2,10 +2,11 @@
 
 ## What this covers
 
-A URL shortener with two core capabilities: an API to create a short link from a long URL, and a
-redirect endpoint that resolves a short link back to its destination. Submitting a URL that's
-already been shortened returns the existing short link instead of creating a duplicate, and
-malformed or unsafe URLs are rejected before anything is created.
+A URL shortener with three core capabilities: an API to create a short link from a long URL, a
+redirect endpoint that resolves a short link back to its destination, and a stats endpoint that
+reports how many times a short link has been used. Submitting a URL that's already been shortened
+returns the existing short link instead of creating a duplicate, and malformed or unsafe URLs are
+rejected before anything is created.
 
 ## User scenarios
 
@@ -27,6 +28,11 @@ same original short link (idempotent).
 explanation of why. This keeps short links from breaking, and stops the service being used to
 disguise unsafe destinations or reach internal-only addresses.
 
+**Checking how much a short link has been used.** Anyone holding a short code can look up its
+click count and when it was last used — useful for a link creator who wants to know whether their
+link is actually being visited, without needing an account or ownership check (matching the rest
+of this API, which has neither).
+
 ## Edge cases
 
 - The same long URL submitted with a trailing slash, different query-string order, different
@@ -43,6 +49,10 @@ disguise unsafe destinations or reach internal-only addresses.
 - Requesting a short code with an unexpected format or length returns the same "not found"
   response as a nonexistent-but-valid-looking code, so the response never reveals whether the
   format itself was invalid.
+- Requesting stats for a short code that doesn't exist returns the same "not found" response as
+  the redirect endpoint does, rather than a different error shape.
+- A brand-new short link has a click count of zero and no last-accessed time before its first
+  redirect.
 
 ## Requirements
 
@@ -73,12 +83,17 @@ disguise unsafe destinations or reach internal-only addresses.
     abuse of the creation endpoint.
 11. A created short link remains resolvable indefinitely (no automatic expiration in this
     version).
+12. Count how many times each short link has been resolved via redirect, and record when it was
+    last accessed; report both via a stats endpoint keyed by short code.
+13. Respond with the same "not found" outcome for a stats request against a short code that
+    doesn't exist as the redirect endpoint gives for an unknown code.
 
 ## Data
 
 **Short Link** — the mapping between a system-generated short code and a destination long URL.
 Attributes: short code (unique, 6-character lowercase alphanumeric string), destination long URL,
-creation timestamp. Each long URL maps to at most one short link.
+creation timestamp, click count, last-accessed timestamp. Each long URL maps to at most one short
+link.
 
 ## Measurable outcomes
 
@@ -91,6 +106,8 @@ creation timestamp. Each long URL maps to at most one short link.
   short links.
 - Requesting a short code that was never created always produces a clear "not found" outcome
   rather than an error page or unrelated failure.
+- A short link's reported click count always equals the number of successful redirects it has
+  served, with zero drift under concurrent traffic.
 
 ## Assumptions
 
@@ -104,7 +121,10 @@ creation timestamp. Each long URL maps to at most one short link.
   send someone to the wrong destination.
 - Short links don't expire and aren't deletable in this version; lifecycle management
   (expiration, deletion, ownership transfer) is deferred to a later feature.
-- Click analytics and usage statistics are explicitly out of scope for this version and would be
-  a separate feature.
+- Click tracking is a single running total per short link (count + last-accessed time), not a
+  time-series or per-click event log; breaking usage down by day, referrer, or geography is
+  deferred to a later feature.
+- The click count is exact, not approximate — see Design Decisions for the trade-off this implies
+  for the redirect path.
 - Specific numeric rate-limit thresholds and exact HTTP status codes were left as implementation
   decisions rather than fixed upfront (see Design Decisions).

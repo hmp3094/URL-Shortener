@@ -7,7 +7,9 @@
 | `id` | `BIGINT` | Primary key, from `short_link_seq` | Source value for the short code's encoding |
 | `short_code` | `VARCHAR(6)` | `NOT NULL`, `UNIQUE`, `CHECK (short_code ~ '^[a-z0-9]{6}$')` | Lowercase alphanumeric, stored/compared case-insensitively |
 | `long_url` | `TEXT` | `NOT NULL`, `UNIQUE`, max length 2048 (app-level validation) | Exact string as submitted, after whitespace trimming only — no other normalization. Used directly as the redirect target |
-| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, `DEFAULT now()` | Set once at insert; the row is otherwise immutable |
+| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, `DEFAULT now()` | Set once at insert; never changes |
+| `click_count` | `BIGINT` | `NOT NULL`, `DEFAULT 0` | Incremented atomically on every successful redirect (see Design Decisions) |
+| `last_accessed_at` | `TIMESTAMPTZ` | Nullable | `NULL` until the first redirect; updated alongside `click_count` |
 
 ### Validation (applied before any write)
 
@@ -22,9 +24,11 @@
 
 ### Lifecycle
 
-No state transitions. A short link is created once and never updated or deleted in this version
-(no expiration, no deletion, no ownership transfer — deferred to a later feature). The only two
-operations against a row are insert-if-absent (creation) and read (redirect lookup).
+A short link is created once and never deleted, and its identity fields (`short_code`, `long_url`,
+`created_at`) never change after creation (no expiration, no deletion, no ownership transfer —
+deferred to a later feature). `click_count` and `last_accessed_at` are the one exception: they're
+updated in place on every redirect. The operations against a row are insert-if-absent (creation),
+read (redirect lookup, stats lookup), and increment (click tracking).
 
 ### Indexes
 
@@ -35,7 +39,7 @@ operations against a row are insert-if-absent (creation) and read (redirect look
 ## Migration
 
 `src/main/resources/db/migration/V1__create_short_links_table.sql` creates the sequence and the
-table above.
+table above (minus the two click-tracking columns, added later).
 
 **Rollback plan**: Flyway's free edition doesn't auto-apply down-migrations, so reverting this
 migration is a documented manual procedure:
@@ -45,5 +49,16 @@ DROP TABLE short_links;
 DROP SEQUENCE short_link_seq;
 ```
 
-No other tables exist in this version — no accounts, no click events; analytics and
-authentication are out of scope (see `requirements.md`).
+`src/main/resources/db/migration/V2__add_click_tracking.sql` adds `click_count` and
+`last_accessed_at` to the existing table.
+
+**Rollback plan**:
+
+```sql
+ALTER TABLE short_links DROP COLUMN click_count;
+ALTER TABLE short_links DROP COLUMN last_accessed_at;
+```
+
+No other tables exist in this version — no accounts, no raw click-event log (click tracking is an
+aggregate counter on the existing row, not a separate events table); authentication remains out of
+scope (see `requirements.md`).

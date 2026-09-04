@@ -1,7 +1,7 @@
 # URL Shortener
 
-A URL shortener service. This repository currently implements the core API: creating short
-links from long URLs and resolving them via redirect.
+A URL shortener service. This repository implements the core API: creating short links from long
+URLs, resolving them via redirect, and reporting click statistics per link.
 
 ## Requirements
 
@@ -22,8 +22,8 @@ migrations automatically on startup, and starts the API on `http://localhost:808
 ## Try it
 
 See [docs/getting-started.md](docs/getting-started.md) for curl-based walkthroughs of every
-user-facing scenario (create a link, follow the redirect, duplicate-URL reuse, invalid-URL
-rejection, rate limiting).
+user-facing scenario (create a link, follow the redirect, check click stats, duplicate-URL reuse,
+invalid-URL rejection, rate limiting).
 
 ## Project docs
 
@@ -33,6 +33,8 @@ rejection, rate limiting).
 - [docs/data-model.md](docs/data-model.md) — schema
 - [docs/api.yaml](docs/api.yaml) — OpenAPI contract
 - [docs/performance.md](docs/performance.md) — redirect latency measurement
+- [docs/scenarios/](docs/scenarios/) — how specific pieces of work were scoped, built, and
+  validated (a brownfield enhancement and an ambiguous-requirement resolution)
 
 ## Tests
 

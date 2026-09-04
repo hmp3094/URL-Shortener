@@ -1,6 +1,7 @@
 package com.urlshortener.link;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -27,4 +28,17 @@ public interface ShortLinkRepository extends JpaRepository<ShortLink, Long> {
             @Param("shortCode") String shortCode,
             @Param("longUrl") String longUrl,
             @Param("createdAt") OffsetDateTime createdAt);
+
+    /**
+     * Atomically increments the click counter and stamps the access time in a single row-level
+     * update, so concurrent redirects for the same code can't race each other into an
+     * under-count. Runs on every redirect (see {@code ShortLinkService.recordClick}), independent
+     * of the cache-aside lookup used to resolve the destination URL — an accepted trade-off of
+     * exact counts over keeping every redirect off the database.
+     */
+    @Modifying
+    @Query(value = "UPDATE short_links SET click_count = click_count + 1, last_accessed_at = now() "
+            + "WHERE short_code = :shortCode",
+            nativeQuery = true)
+    void recordClick(@Param("shortCode") String shortCode);
 }

@@ -51,6 +51,28 @@ public class ShortLinkService {
                 .orElseThrow(() -> new ShortLinkNotFoundException(code));
     }
 
+    /**
+     * Records a click against a short code. Deliberately not cached and not folded into
+     * {@link #resolve(String)} — that method is skipped entirely on a cache hit, so a counter
+     * update placed inside it would silently stop firing once a code warms up. Called once per
+     * redirect regardless of whether the destination lookup was served from cache.
+     */
+    @Transactional
+    public void recordClick(String code) {
+        shortLinkRepository.recordClick(code.toLowerCase());
+    }
+
+    /**
+     * Fetches a short link's current stats directly from Postgres, bypassing the redirect cache
+     * so the click count and last-accessed time are always current, never a stale cached snapshot
+     * from whenever the link was first resolved.
+     */
+    public ShortLink getStatsSnapshot(String code) {
+        String normalized = code.toLowerCase();
+        return shortLinkRepository.findByShortCode(normalized)
+                .orElseThrow(() -> new ShortLinkNotFoundException(code));
+    }
+
     private long nextSequenceValue() {
         Object result = entityManager.createNativeQuery("SELECT nextval('short_link_seq')").getSingleResult();
         return ((Number) result).longValue();
