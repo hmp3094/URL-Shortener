@@ -63,7 +63,7 @@ to the merged codebase rather than baked into any one scenario.
 - **Runtime**: `Dockerfile` + `docker-compose.yml`, the only prerequisite to run the whole system
   end-to-end.
 
-## Risks and trade-offs (deliberate, not oversights)
+## Risks and trade-offs
 
 - **Synchronous click tracking** adds a database write to every redirect, including cache-hit
   ones — measured regression: p50 5.1ms → 8.4ms (+65%). Accepted because exact counts mattered
@@ -108,7 +108,7 @@ against baseline for every change that touched that path (`docs/performance.md`)
 - The full, itemized list per feature lives in each doc's own Assumptions section
   (`requirements.md`, and the Assumptions sections it accumulated across all three features).
 
-## Limitations (open, not hidden)
+## Limitations
 
 - **Testcontainers doesn't run on this development machine** — a Docker Desktop/docker-java
   version incompatibility, root-caused and documented, not a code defect. Contract/integration
@@ -133,7 +133,7 @@ against baseline for every change that touched that path (`docs/performance.md`)
 Every schema change, every persistence-touching change, and every ambiguous-requirement resolution
 was presented with trade-offs and explicitly signed off on before implementation — not decided
 unilaterally and reported afterward. Traceability of what was AI-generated vs. edited vs. rejected
-is deliberately kept in these docs and in `docs/scenarios/`, not in commit messages or git history,
+is deliberately kept in these docs and in `docs/scenarios/`.
 since the git history itself is meant to read as ordinary engineering work rather than an
 AI-generated audit trail. The one real defect this project produced was found by actually running
 the system, not by inspecting the code — which is the argument for why the manual `docker compose`
