@@ -9,6 +9,41 @@ validation, assumptions, limitations) and [docs/architecture-overview.md](docs/a
 (components, control flow, key decisions) are the two documents that summarize the whole project —
 read those first if you're short on time.
 
+## Where each deliverable lives
+
+| Deliverable | Where |
+|---|---|
+| Working prototype (runnable end-to-end) | `docker compose up --build` — see "Run it" below |
+| Architecture overview (components, tools, execution approach, control flow, key decisions) | [docs/architecture-overview.md](docs/architecture-overview.md) |
+| Three scenarios: greenfield, brownfield, ambiguous (decomposition, execution, validation) | "Three scenarios" table below, [docs/scenarios/](docs/scenarios/) |
+| Setup instructions | [docs/getting-started.md](docs/getting-started.md), "Run it" / "Try it" below |
+| Testing approach, limitations, and trade-offs | [docs/engineering-summary.md](docs/engineering-summary.md) ("Validation", "Limitations"), [docs/design-decisions.md](docs/design-decisions.md) |
+
+## Engineering highlights
+
+The decisions worth reading, not just the code that resulted from them:
+
+- **Exact click counts over redirect-path purity** — click tracking is synchronous, adding a real,
+  measured latency cost (p50 5.1ms → 8.4ms, +65%) to every redirect rather than batching or going
+  async. Accepted because correctness mattered more than redirect-path speed at this scale
+  ([docs/design-decisions.md](docs/design-decisions.md)).
+- **Retire-and-reissue, not reactivate, on expired-link resubmission** — an expired short code
+  never comes back to life; resubmitting its URL creates a new code instead. Reactivating it would
+  quietly defeat the point of setting an expiration
+  ([docs/scenarios/ambiguous-link-expiration.md](docs/scenarios/ambiguous-link-expiration.md)).
+- **A real concurrency bug found by running the system, not by reading the code** — a
+  `WITH ... DELETE ... INSERT` statement that looked atomic in the SQL wasn't, because of
+  Postgres's same-snapshot semantics for data-modifying CTEs. Caught only because manual
+  `docker compose` validation was treated as load-bearing, not a formality
+  ([docs/scenarios/ambiguous-link-expiration.md](docs/scenarios/ambiguous-link-expiration.md)).
+- **The governance document was checked against reality, and reality lost some arguments** —
+  partway through, the project's own constitution and the actual implementation had drifted apart
+  (synchronous click tracking vs. an async requirement, open stats access vs. an owner-only
+  requirement). Some gaps were fixed in code; others were reconciled by amending the constitution
+  with an explicit rationale and version bump — never by quietly weakening the one non-negotiable
+  principle (test-first) to match what had already been done; that deviation is logged openly
+  instead ([.specify/memory/constitution.md](.specify/memory/constitution.md)).
+
 ## Requirements
 
 - Docker and Docker Compose (the only requirement to run the full system)
