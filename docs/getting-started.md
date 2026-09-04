@@ -20,6 +20,12 @@ Swagger UI is available at `http://localhost:8080/swagger-ui.html` for interacti
 
 ## Try it
 
+> **Windows/PowerShell**: `curl` is aliased to `Invoke-WebRequest`, which doesn't support `-i`,
+> `-X`, or `-d` the way real curl does, and the `\` line continuations below are a bash-ism.
+> Use `curl.exe` explicitly and put each command on one line, e.g.
+> `curl.exe -i -X POST http://localhost:8080/api/links -H "Content-Type: application/json" -d '{\"url\":\"https://example.com\"}'`
+> (note double quotes inside `-d` need escaping as `\"` in PowerShell, unlike bash).
+
 ### Create a short link
 
 ```bash

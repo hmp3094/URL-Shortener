@@ -16,9 +16,8 @@ small.
 Java 21, Spring Boot 3 (Spring Web, Spring Data JPA, Spring Validation, Spring Boot Actuator),
 Maven, PostgreSQL 16, Flyway for migrations.
 
-Flyway specifically (not just "some migration approach") because schema changes to this table
-need a documented rollback plan, and versioned migrations are the standard way to make that
-concrete and executable.
+Flyway specifically because schema changes to this tableneed a documented rollback plan, and 
+versioned migrations are the standard way to make thatconcrete and executable.
 
 **Alternative considered**: an embedded/file-based database (H2, SQLite) needs no separate
 service, but mapping writes need to be durable and survive a single node/instance failure — an
