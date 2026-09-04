@@ -16,11 +16,9 @@ already-shipped core; the ambiguous scenario is link expiration, where the requi
 
 ## Plan and approach
 
-Work proceeded in two modes, described in full in `docs/architecture-overview.md`'s "Tools and
-execution approach": an initial Spec Kit-scaffolded phase for the core API, followed by a
-deliberate pivot to direct, conversational, scenario-driven engineering once the project owner
-decided the deliverable needed to read as human-engineered work rather than framework output. Every
-feature after that pivot followed the same loop: decompose the ambiguity or gap → propose a
+Work proceeded as a series of scoped, conversational engineering sessions between the project
+owner and Claude Code, described in full in `docs/architecture-overview.md`'s "Tools and execution
+approach". Every feature followed the same loop: decompose the ambiguity or gap → propose a
 resolution with trade-offs (not just an answer) → get explicit sign-off on anything touching
 schema, persistence, or security → implement → validate against a real running system → document
 the decision where it belongs (`docs/scenarios/` for the scenario narrative, `docs/design-decisions.md`

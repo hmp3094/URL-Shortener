@@ -74,24 +74,9 @@ flowchart TB
 
 ## Tools and execution approach
 
-This project went through two distinct execution modes, and the switch between them was itself a
-deliberate engineering decision, not drift:
-
-**Phase 1 — scaffolded via Spec Kit.** The original core API (create + redirect) was built through
-the Spec Kit workflow (constitution → specify → clarify → plan → tasks → implement), which produced
-a `specs/` folder, task-ID-tagged commits, and Spec Kit's own notation (FR-XXX, User Story N)
-throughout the code and history.
-
-**Phase 2 — cleaned up and switched to direct, scenario-driven engineering.** Partway through, the
-project owner made an explicit call: the deliverable needed to read as engineer-led work, not as
-"AI followed a framework template" — commit history the size and shape a human would actually
-produce, no Spec Kit jargon anywhere in code, comments, or commit messages. That meant:
-rewriting ~45 mechanically-generated commits down to 15 human-sized ones (with realistic, spread
-timestamps for the same reason), deleting `specs/` in favor of plain-language docs, and scrubbing
-every FR-/SC-/User-Story-/task-ID reference from the codebase. From that point on, every further
-feature was built directly — no spec-kit ceremony, no generated task lists — as a conversation
-between the project owner and Claude, one git branch per unit of work (`feature/{name}`), each
-scoped, decomposed, built, and validated in that same conversation.
+Every feature was built as a conversation between the project owner and Claude Code, one git
+branch per unit of work (`feature/{name}`), each scoped, decomposed, built, and validated in that
+same conversation before being opened as its own PR.
 
 **Per-feature execution pattern** (click analytics, link expiration, static analysis all followed
 this): identify the ambiguity or gap → decompose it into concrete decision points → propose a
