@@ -27,12 +27,20 @@ public class StatsController {
             @ApiResponse(responseCode = "200", description = "Current click count and access time for this short code",
                     content = @Content(schema = @Schema(implementation = LinkStatsResponse.class))),
             @ApiResponse(responseCode = "404", description = "No short link exists for this code",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "429", description = "Too many stats requests from this caller",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/api/links/{code}/stats")
     public ResponseEntity<LinkStatsResponse> getStats(
             @Parameter(description = "6-character short code (case-insensitive)") @PathVariable String code) {
         ShortLink shortLink = shortLinkService.getStatsSnapshot(code);
+        // Same "never reveal why a code doesn't resolve" principle already applied to malformed
+        // vs. nonexistent codes on the redirect endpoint: an expired link's stats are hidden
+        // behind the same 404 as a code that never existed, not exposed with a distinct status.
+        if (shortLink.isExpired()) {
+            throw new ShortLinkNotFoundException(code);
+        }
         return ResponseEntity.ok(LinkStatsResponse.from(shortLink));
     }
 }

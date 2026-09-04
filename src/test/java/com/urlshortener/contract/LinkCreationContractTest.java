@@ -71,4 +71,38 @@ class LinkCreationContractTest extends AbstractIntegrationTest {
                         .content("{\"url\":\"" + oversizedUrl + "\"}"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void createShortLinkWithAnExpiryReturnsExpiresAt() throws Exception {
+        String longUrl = "https://example.com/expiry-contract-test/" + UUID.randomUUID();
+
+        mockMvc.perform(post("/api/links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"" + longUrl + "\",\"expiresInSeconds\":3600}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.expiresAt").exists());
+    }
+
+    @Test
+    void createShortLinkWithNoExpiryReturnsNullExpiresAt() throws Exception {
+        String longUrl = "https://example.com/no-expiry-contract-test/" + UUID.randomUUID();
+
+        mockMvc.perform(post("/api/links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"" + longUrl + "\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.expiresAt").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "31536001"})
+    void rejectsAnInvalidExpiresInSecondsWith400(String expiresInSeconds) throws Exception {
+        String longUrl = "https://example.com/bad-expiry-contract-test/" + UUID.randomUUID();
+
+        mockMvc.perform(post("/api/links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"" + longUrl + "\",\"expiresInSeconds\":" + expiresInSeconds + "}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
 }

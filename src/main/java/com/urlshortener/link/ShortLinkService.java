@@ -20,20 +20,37 @@ public class ShortLinkService {
     }
 
     /**
-     * Creates a short link for {@code longUrl}, or returns the existing one if this exact URL
-     * (after whitespace trimming) already has a short link — atomically, even under concurrent
-     * requests, via an {@code INSERT ... ON CONFLICT (long_url) DO NOTHING}. The sequence value
-     * consumed for a "losing" insert is simply never used again, which is expected/harmless
-     * (sequences are allowed to have gaps).
+     * Creates a short link for {@code longUrl} with no expiration. See
+     * {@link #create(String, Long)}.
+     */
+    public ShortLink create(String longUrl) {
+        return create(longUrl, null);
+    }
+
+    /**
+     * Creates a short link for {@code longUrl}, or returns the existing live one if this exact
+     * URL (after whitespace trimming) already has a non-expired short link. If the existing short
+     * link for this URL has expired, {@link ShortLinkRepository#deleteIfExpired} retires it first
+     * (same transaction) so a brand-new short code can be issued instead of reactivating the old
+     * one — the old code is retired for good, which is the whole point of it having expired (see
+     * {@code docs/scenarios/ambiguous-link-expiration.md}). The insert itself is still atomic and
+     * lock-free under concurrent requests via {@link ShortLinkRepository#insertIfLongUrlAbsent}.
+     *
+     * @param expiresInSeconds how long the new short link should remain resolvable, or
+     *                         {@code null} for no expiration (the default — expiry is opt-in)
      */
     @Transactional
-    public ShortLink create(String longUrl) {
+    public ShortLink create(String longUrl, Long expiresInSeconds) {
         String trimmed = longUrl.trim();
+        shortLinkRepository.deleteIfExpired(trimmed);
+
         long id = nextSequenceValue();
         String shortCode = ShortCodeEncoder.encode(id);
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime expiresAt = expiresInSeconds == null ? null : now.plusSeconds(expiresInSeconds);
 
         return shortLinkRepository
-                .insertIfLongUrlAbsent(id, shortCode, trimmed, OffsetDateTime.now())
+                .insertIfLongUrlAbsent(id, shortCode, trimmed, now, expiresAt)
                 .orElseGet(() -> shortLinkRepository.findByLongUrl(trimmed)
                         .orElseThrow(() -> new IllegalStateException(
                                 "Insert conflicted on long_url but no existing row was found: " + trimmed)));

@@ -9,7 +9,8 @@ public record LinkStatsResponse(
         String longUrl,
         long clickCount,
         OffsetDateTime createdAt,
-        OffsetDateTime lastAccessedAt) {
+        OffsetDateTime lastAccessedAt,
+        OffsetDateTime expiresAt) {
 
     public static LinkStatsResponse from(ShortLink shortLink) {
         return new LinkStatsResponse(
@@ -17,6 +18,7 @@ public record LinkStatsResponse(
                 shortLink.getLongUrl(),
                 shortLink.getClickCount(),
                 shortLink.getCreatedAt(),
-                shortLink.getLastAccessedAt());
+                shortLink.getLastAccessedAt(),
+                shortLink.getExpiresAt());
     }
 }

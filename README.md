@@ -1,7 +1,8 @@
 # URL Shortener
 
 A URL shortener service. This repository implements the core API: creating short links from long
-URLs, resolving them via redirect, and reporting click statistics per link.
+URLs (optionally with an expiration), resolving them via redirect, and reporting click statistics
+per link.
 
 ## Requirements
 
@@ -22,8 +23,8 @@ migrations automatically on startup, and starts the API on `http://localhost:808
 ## Try it
 
 See [docs/getting-started.md](docs/getting-started.md) for curl-based walkthroughs of every
-user-facing scenario (create a link, follow the redirect, check click stats, duplicate-URL reuse,
-invalid-URL rejection, rate limiting).
+user-facing scenario (create a link, follow the redirect, check click stats, set an expiration,
+duplicate-URL reuse, invalid-URL rejection, rate limiting).
 
 ## Project docs
 

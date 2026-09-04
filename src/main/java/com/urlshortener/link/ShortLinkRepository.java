@@ -15,19 +15,40 @@ public interface ShortLinkRepository extends JpaRepository<ShortLink, Long> {
     Optional<ShortLink> findByLongUrl(String longUrl);
 
     /**
+     * Deletes {@code longUrl}'s existing row if (and only if) it has expired — a no-op otherwise.
+     * Deliberately a separate statement from {@link #insertIfLongUrlAbsent}, not combined into one
+     * {@code WITH ... DELETE ... INSERT} statement: Postgres runs every data-modifying clause of a
+     * single statement's WITH block against the *same* snapshot, so an INSERT in the same
+     * statement as this DELETE would not see the DELETE's own effect and would still conflict on
+     * {@code long_url} — this was tried, and failed exactly that way against a real database (not
+     * a mocked one), which is why it's two statements now. Two separate statements in the same
+     * {@code @Transactional} method each get a fresh read of the latest committed data (Postgres's
+     * default READ COMMITTED isolation), so the INSERT that follows this call correctly sees that
+     * the row is gone.
+     */
+    @Modifying
+    @Query(value = "DELETE FROM short_links "
+            + "WHERE long_url = :longUrl AND expires_at IS NOT NULL AND expires_at <= now()",
+            nativeQuery = true)
+    void deleteIfExpired(@Param("longUrl") String longUrl);
+
+    /**
      * Atomically inserts a new row unless {@code longUrl} already has one, without needing any
      * application-level locking. Returns empty when a row for this {@code longUrl} already
-     * existed — the caller should then re-select it via {@link #findByLongUrl(String)}.
+     * existed — the caller should then re-select it via {@link #findByLongUrl(String)}. Callers
+     * that support expiry call {@link #deleteIfExpired(String)} first (same transaction) so an
+     * expired row doesn't block a fresh one from being created for the same URL.
      */
-    @Query(value = "INSERT INTO short_links (id, short_code, long_url, created_at) "
-            + "VALUES (:id, :shortCode, :longUrl, :createdAt) "
+    @Query(value = "INSERT INTO short_links (id, short_code, long_url, created_at, expires_at) "
+            + "VALUES (:id, :shortCode, :longUrl, :createdAt, :expiresAt) "
             + "ON CONFLICT (long_url) DO NOTHING RETURNING *",
             nativeQuery = true)
     Optional<ShortLink> insertIfLongUrlAbsent(
             @Param("id") Long id,
             @Param("shortCode") String shortCode,
             @Param("longUrl") String longUrl,
-            @Param("createdAt") OffsetDateTime createdAt);
+            @Param("createdAt") OffsetDateTime createdAt,
+            @Param("expiresAt") OffsetDateTime expiresAt);
 
     /**
      * Atomically increments the click counter and stamps the access time in a single row-level
