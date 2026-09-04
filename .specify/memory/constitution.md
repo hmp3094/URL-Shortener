@@ -1,75 +1,50 @@
 <!--
 Sync Impact Report
-- Version change: 1.2.0 → 2.0.0 (MAJOR: redefines/loosens previously-asserted MUST guarantees in
-  Principles I, II, and IV, and in Reliability & Data Standards — backward-incompatible relative
-  to what those principles previously guaranteed)
-- Reason for this amendment: this constitution was written broad and aspirational at project
-  start (accounts/ownership, async analytics pipeline with referrer/geo/device data, owner-scoped
-  stats, distinguishable expiry states). Every subsequent scoping decision on the actual delivered
-  feature (no accounts, synchronous exact click counting, indistinguishable expired/never-existed
-  responses, a much narrower analytics data set) diverged from it without ever being reconciled,
-  violating this document's own Governance clause ("deviations MUST be explicitly justified with a
-  plan to either come into compliance or amend the constitution"). This amendment closes that gap
-  for the divergences that were deliberate, discussed, and already signed off on by the project
-  owner. It does not touch every gap found during the audit that produced it — see "Not amended"
-  below.
+- Version change: 2.0.0 → 3.0.0 (MAJOR: this branch (link-expiration) builds on the v2.0.0
+  amendment already made for click-analytics — see that amendment's own history for the
+  click-tracking/analytics-scope/ownership reconciliation — and adds a further backward-
+  incompatible change of its own: flipping the expired/never-existed distinguishability
+  guarantee)
+- Reason for this amendment: v2.0.0 reconciled the constitution with click-analytics as actually
+  built. This project has since built link expiration (TTL) on top of click-analytics, which
+  introduces its own divergence from what v2.0.0 still asserted: an expired link's fate (retire
+  and reissue vs. reactivate) and whether expired-vs-never-existed must be distinguishable. Both
+  were deliberate, discussed, and signed off on by the project owner — this amendment reconciles
+  them the same way v2.0.0 reconciled click-analytics, rather than letting a second layer of
+  drift accumulate.
 - Modified principles:
-  - I. Short Link Integrity → the immutability guarantee no longer presumes an account/ownership
-    model that doesn't exist in this project's current scope. Reworded: identity fields (short
-    code, destination URL, creation timestamp) still never change once set; click-count/
-    last-accessed bookkeeping updates in place are named as an explicit exception; an *expired*
-    mapping may be atomically retired and replaced by a fresh mapping (new short code) when its
-    URL is resubmitted, but is never reactivated under its old code. If an authenticated ownership
-    model is added later, user-authenticated update/delete must be layered on top of this
-    guarantee, not used to retroactively justify it.
-  - II. Redirect Performance & Availability → dropped the unconditional "click tracking MUST be
-    asynchronous" requirement. Click tracking MAY be synchronous with the redirect response when
-    exact counts are prioritized over decoupling, provided the trade-off is measured and
-    documented and revisited if it becomes a bottleneck. Reflects the actual chosen design: a
-    single atomic UPDATE per redirect, reasoned through in
-    `docs/scenarios/brownfield-click-analytics.md` and `docs/design-decisions.md`.
-  - IV. Analytics Without Compromise → narrowed the mandated data set from
-    "timestamp, referrer, coarse geolocation, device/user-agent class" to what's actually
-    collected: a running click count and a last-accessed timestamp, nothing per-click and nothing
-    time-bucketed. Dropped the owner-only access requirement — enforcing it would require an
-    authentication/ownership model this project does not have in scope; if one is added later,
-    owner-scoped stats access must be added at that point, not asserted against a system that has
-    no notion of an owner today. The burst-resilience clause is reframed around the synchronous
-    design chosen in Principle II rather than presuming a queue/batch/sample pipeline that was
-    never built.
+  - I. Short Link Integrity → added a second named exception to the identity-fields-never-change
+    guarantee (on top of v2.0.0's click-count/last-accessed one): an *expired* mapping MAY be
+    atomically retired and replaced by a fresh mapping (new short code) when its destination URL
+    is resubmitted, but MUST NOT be reactivated under its old code — reactivating it would defeat
+    the point of it having expired. See `docs/scenarios/ambiguous-link-expiration.md` for the
+    decomposition and the rejected alternative (reactivation).
 - Modified sections:
   - Reliability & Data Standards → "Expired, deleted, and never-existed short codes MUST be
-    distinguishable" is replaced with the opposite, deliberately-chosen guarantee: expired and
-    never-existed codes MUST be indistinguishable in the API response (same 404), consistent with
-    Principle I's existing "never reveal why a code doesn't resolve" pattern for malformed codes.
-    "Deleted" is dropped — this project has no deletion feature. Added a note that synchronous
-    click tracking makes analytics-ingestion lag trivially ~0, satisfying the existing
-    measure-and-document requirement rather than conflicting with it.
+    distinguishable" (still asserted as of v2.0.0, since click-analytics alone has no expiry
+    concept) is now replaced with the opposite, deliberately-chosen guarantee: expired and
+    never-existed codes MUST be indistinguishable in the API response (same 404) — consistent
+    with Principle I's existing "never reveal why a code doesn't resolve" pattern already applied
+    to malformed codes. "Deleted" is dropped entirely — this project still has no deletion
+    feature, only expiration.
 - Added sections: none
 - Removed sections: none
-- NOT amended (explicitly, by project-owner instruction):
-  - III. Test-First Delivery — left completely unchanged, still NON-NEGOTIABLE. Logged deviation:
-    the click-analytics and link-expiration features were implemented with tests written after
-    the code, not before, violating this principle as written. This is **not** brought into
-    retroactive compliance by this amendment — it's logged here as an explicit, acknowledged
-    violation per the Governance clause's "explicitly justified... plan to come into compliance."
-    The plan: Test-First applies without exception to all work on this project from this point
-    forward; no further exceptions will be logged silently. (The stats rate-limiting fix below was
-    the first change actually built this way: test written and confirmed failing — via manual
-    curl verification, since Testcontainers doesn't run on this machine — before the fix.)
-- Resolved since this amendment was first drafted (fixed in code, not just documented):
-  - Principle V's rate-limiting requirement now covers the stats (analytics-read) endpoint, not
-    just creation — see `docs/design-decisions.md`'s "Rate limiting on link creation and stats."
-    Verified red (no limiting) then green (429 after capacity) via `docker compose`.
-  - The Reliability & Data Standards' load/latency-measurement requirement has been satisfied for
-    both the click-analytics and link-expiration changes — see `docs/performance.md`'s
-    baseline-vs-click-tracking comparison and its link-expiration addendum (no measurable added
-    cost, as expected for an in-memory check).
+- NOT amended (explicitly, by project-owner instruction, unchanged since v2.0.0):
+  - III. Test-First Delivery — still completely unchanged, still NON-NEGOTIABLE. Logged deviation
+    (carried forward from v2.0.0, now also covering this branch): link-expiration was implemented
+    with tests written after the code, not before, same violation as click-analytics. Still not
+    brought into retroactive compliance — logged per the Governance clause's "explicitly
+    justified... plan to come into compliance." Test-First applies without exception to all work
+    on this project from this point forward.
+- Inherited from v2.0.0, already resolved on this branch too (not re-litigated here):
+  - Stats-endpoint rate limiting and the load/latency-measurement requirement — both satisfied;
+    see `docs/design-decisions.md` and `docs/performance.md` (which also has a link-expiration-
+    specific addendum: the expiry check adds no measurable redirect-path cost).
 - Still found during this audit, deliberately left open rather than silently resolved (raised to
   the project owner separately, not decided unilaterally in this amendment):
   - Principle V's "contract before implementation" requirement — `docs/api.yaml` was updated
-    alongside/after the click-analytics and link-expiration code, not before it, the same pattern
-    as the Test-First deviation above.
+    alongside/after the link-expiration code, not before it, the same pattern as the Test-First
+    deviation above.
 - Follow-up TODOs:
   - TODO(RATIFICATION_DATE): unchanged from v1.0.0 — original ratification date still unconfirmed.
 -->
@@ -105,4 +80,4 @@ This project is developed solo; there is no mandatory second-person code review 
 
 This constitution supersedes other project practices where a conflict exists. Amendments require: (1) a written proposal with rationale, (2) explicit identification of which principle(s) are added/removed/redefined, and (3) a semantic version bump — MAJOR for backward-incompatible governance or principle changes, MINOR for new principles or materially expanded guidance, PATCH for clarifications and wording fixes. Every PR and design review MUST verify compliance; deviations MUST be explicitly justified with a plan to either come into compliance or amend the constitution. New capabilities MUST extend or compose existing modules, services, or repositories before introducing new ones — new abstractions, services, or datastores not required by a Core Principle or a documented requirement MUST be rejected in review. This document is the primary source of runtime guidance for all Spec Kit workflows (/speckit.specify, /speckit.plan, /speckit.tasks, /speckit.implement) operating on this project.
 
-**Version**: 2.0.0 | **Ratified**: 2026-09-03 | **Last Amended**: 2026-09-03
+**Version**: 3.0.0 | **Ratified**: 2026-09-03 | **Last Amended**: 2026-09-03
