@@ -5,7 +5,9 @@ info:
   description: >
     Core API for creating short links from long URLs, resolving them via redirect, and reporting
     click statistics. Statistics are a single running total per link (count + last-accessed time),
-    not a time-series or per-click event log.
+    not a time-series or per-click event log. A short link may optionally be given an expiration;
+    an expired code behaves identically to one that never existed — same 404, no distinguishing
+    signal.
 servers:
   - url: /
 paths:
@@ -103,6 +105,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many stats requests from this caller
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     CreateLinkRequest:
@@ -114,6 +127,16 @@ components:
           format: uri
           maxLength: 2048
           example: "https://example.com/some/very/long/path?with=query"
+        expiresInSeconds:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 31536000
+          nullable: true
+          description: >
+            Optional. How long the short link should remain resolvable. Omit for a link that
+            never expires (the default — expiry is opt-in, not automatic).
+          example: 3600
     LinkResponse:
       type: object
       properties:
@@ -131,6 +154,11 @@ components:
         createdAt:
           type: string
           format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Null if the link was created with no expiration.
     LinkStatsResponse:
       type: object
       properties:
@@ -153,6 +181,11 @@ components:
           format: date-time
           nullable: true
           description: Null if the link has never been visited
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Null if the link was created with no expiration.
     ErrorResponse:
       type: object
       properties:

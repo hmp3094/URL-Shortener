@@ -16,7 +16,11 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // Rate limiting applies only to link creation, not to redirects.
-        registry.addInterceptor(rateLimitInterceptor).addPathPatterns("/api/links");
+        // Rate limiting applies to link creation and the stats (analytics-read) endpoint, sharing
+        // one per-IP budget — not a separate one per endpoint, which would be more precise but
+        // isn't needed at this scale. Deliberately excludes the redirect endpoint itself: the
+        // constitution treats the redirect path as distinct and minimal, and only requires
+        // limiting creation and analytics-read traffic.
+        registry.addInterceptor(rateLimitInterceptor).addPathPatterns("/api/links", "/api/links/*/stats");
     }
 }

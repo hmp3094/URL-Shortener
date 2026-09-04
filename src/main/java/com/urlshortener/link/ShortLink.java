@@ -33,18 +33,22 @@ public class ShortLink {
     @Column(name = "last_accessed_at")
     private OffsetDateTime lastAccessedAt;
 
+    @Column(name = "expires_at")
+    private OffsetDateTime expiresAt;
+
     protected ShortLink() {
         // required by JPA
     }
 
     public ShortLink(Long id, String shortCode, String longUrl, OffsetDateTime createdAt,
-            long clickCount, OffsetDateTime lastAccessedAt) {
+            long clickCount, OffsetDateTime lastAccessedAt, OffsetDateTime expiresAt) {
         this.id = id;
         this.shortCode = shortCode;
         this.longUrl = longUrl;
         this.createdAt = createdAt;
         this.clickCount = clickCount;
         this.lastAccessedAt = lastAccessedAt;
+        this.expiresAt = expiresAt;
     }
 
     public Long getId() {
@@ -69,5 +73,19 @@ public class ShortLink {
 
     public OffsetDateTime getLastAccessedAt() {
         return lastAccessedAt;
+    }
+
+    public OffsetDateTime getExpiresAt() {
+        return expiresAt;
+    }
+
+    /**
+     * {@code null} means "never expires" (the default, opt-in-only). Checked against the current
+     * time on every read, not a stored flag — there's no background job that flips a link to
+     * expired the moment its time passes, so a row can sit expired-but-unmarked in the database
+     * indefinitely until something reads or resubmits it.
+     */
+    public boolean isExpired() {
+        return expiresAt != null && expiresAt.isBefore(OffsetDateTime.now());
     }
 }

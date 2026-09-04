@@ -43,7 +43,7 @@ public class LinkController {
     public ResponseEntity<LinkResponse> createShortLink(@Valid @RequestBody CreateLinkRequest request) {
         destinationUrlValidator.validate(request.url());
 
-        ShortLink created = shortLinkService.create(request.url());
+        ShortLink created = shortLinkService.create(request.url(), request.expiresInSeconds());
 
         String shortUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/{code}")

@@ -35,6 +35,14 @@ public class RedirectController {
     public ResponseEntity<Void> redirectToLongUrl(
             @Parameter(description = "6-character short code (case-insensitive)") @PathVariable String code) {
         ShortLink shortLink = shortLinkService.resolve(code);
+        // Checked here, not inside resolve(): resolve() is @Cacheable and its body is skipped
+        // entirely on a cache hit, so an expiry check placed inside it would silently stop firing
+        // once a code is cached. expiresAt itself never changes after creation, so comparing the
+        // (possibly cached) entity's expiresAt against "now" here is always correct regardless of
+        // when it was cached.
+        if (shortLink.isExpired()) {
+            throw new ShortLinkNotFoundException(code);
+        }
         shortLinkService.recordClick(code);
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, shortLink.getLongUrl())

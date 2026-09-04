@@ -104,20 +104,63 @@ decision, and the options weighed against it, are also walked through in
 `docs/scenarios/brownfield-click-analytics.md`, which covers the ambiguity as part of that
 scenario's execution.
 
-## Rate limiting on link creation
+## Rate limiting on link creation and stats
 
 A small hand-rolled in-memory per-IP token bucket (a map keyed by client IP, refilled on a fixed
-schedule), applied via a Spring interceptor on `POST /api/links` only.
+schedule), applied via a Spring interceptor on both `POST /api/links` (creation) and
+`GET /api/links/{code}/stats` (analytics-read) — the two endpoint categories the constitution
+requires rate limiting on. Both share one bucket per IP rather than separate, independently-tuned
+limits; that's a simplification, not a precision requirement anything currently asks for. The
+redirect endpoint itself is deliberately excluded — it's the one path the constitution treats as
+distinct and minimal, not a target for this requirement.
 
-The creation endpoint needs rate limiting, but the logic itself (a token bucket per key) is small
-enough to implement directly without adding a dependency for a genuinely simple, single-instance
-need. Exceeding the limit returns `429 Too Many Requests` with a `Retry-After` header.
+The creation/stats endpoints need rate limiting, but the logic itself (a token bucket per key) is
+small enough to implement directly without adding a dependency for a genuinely simple,
+single-instance need. Exceeding the limit returns `429 Too Many Requests` with a `Retry-After`
+header.
 
 **Alternative considered**: a dedicated rate-limiting library (e.g., Bucket4j) — evaluated and
 rejected for this scope: it would pull in an extra dependency for the same algorithm this feature
 already needs in a few dozen lines of code. If limiting later needs to be distributed across
 multiple instances, that's the point to introduce a shared-state library or a Redis-backed
 implementation.
+
+## Link expiration
+
+An optional, opt-in expiration (`expiresInSeconds` on creation, stored as a nullable `expires_at`
+timestamp). Enforcement is a read-time check, not a background sweep: `resolve()` and
+`getStatsSnapshot()` both fetch the row as usual, and the caller (`RedirectController`,
+`StatsController`) checks `ShortLink.isExpired()` afterward, throwing the same
+`ShortLinkNotFoundException` used for a code that never existed. This mirrors the click-tracking
+decision above: the check can't live inside `resolve()` itself, since `@Cacheable` skips that
+method's body entirely on a cache hit — but `expiresAt` never changes after creation, so comparing
+the (possibly cached) entity's `expiresAt` against "now" at the caller is always correct regardless
+of when the entity was cached.
+
+No background job ever proactively deletes an expired row the moment it expires — a row can sit in
+the database expired-but-untouched indefinitely; it's simply unreadable through the API from that
+point on. The one place expiry causes a real write is resubmission: if the destination URL of an
+expired link is submitted again, that row is deleted and a fresh one (new id, new short code)
+takes its place, rather than reactivating the expired code — see
+`docs/scenarios/ambiguous-link-expiration.md` for why reactivation was rejected.
+
+**Bug found and fixed during implementation**: the first version of the retire-and-replace logic
+combined the delete and the insert into one SQL statement (`WITH deleted AS (DELETE ...) INSERT
+... ON CONFLICT DO NOTHING`), reasoning that the delete would run first and clear the way for the
+insert. It didn't — Postgres executes every data-modifying clause of a single statement's `WITH`
+block against the *same* snapshot, so the `INSERT` never saw the `DELETE`'s own effect and still
+conflicted on `long_url`, leaving the row deleted but nothing inserted in its place (an
+`IllegalStateException` on resubmission after expiry, reproduced against a real database via
+`docker compose`, not caught by reasoning about the SQL alone). The fix:
+`ShortLinkRepository.deleteIfExpired` and `insertIfLongUrlAbsent` as two separate statements inside
+one `@Transactional` method — under Postgres's default READ COMMITTED isolation, each new statement
+in a transaction sees the latest committed state (including the transaction's own prior writes), so
+the insert correctly sees that the delete already happened.
+
+**Alternative considered**: reactivating an expired link's existing row (same short code, cleared
+expiry) instead of retiring it — simpler, no schema/constraint implications at all. Rejected: it
+would mean a short code that was supposed to have stopped working could be silently revived just by
+someone resubmitting its URL, defeating the point of setting an expiration in the first place.
 
 ## Destination URL / SSRF validation
 

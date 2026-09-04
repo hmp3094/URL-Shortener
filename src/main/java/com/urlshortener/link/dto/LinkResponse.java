@@ -4,9 +4,11 @@ import com.urlshortener.link.ShortLink;
 
 import java.time.OffsetDateTime;
 
-public record LinkResponse(String shortCode, String shortUrl, String longUrl, OffsetDateTime createdAt) {
+public record LinkResponse(
+        String shortCode, String shortUrl, String longUrl, OffsetDateTime createdAt, OffsetDateTime expiresAt) {
 
     public static LinkResponse from(ShortLink shortLink, String shortUrl) {
-        return new LinkResponse(shortLink.getShortCode(), shortUrl, shortLink.getLongUrl(), shortLink.getCreatedAt());
+        return new LinkResponse(shortLink.getShortCode(), shortUrl, shortLink.getLongUrl(),
+                shortLink.getCreatedAt(), shortLink.getExpiresAt());
     }
 }

@@ -60,6 +60,35 @@ curl -i http://localhost:8080/api/links/zzzzzz/stats
 
 Expect `404 Not Found`, same as the redirect endpoint's response for an unknown code.
 
+### Create a link that expires
+
+```bash
+curl -i -X POST http://localhost:8080/api/links \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com/expires-soon","expiresInSeconds":2}'
+```
+
+Expect `201 Created` with `expiresAt` set (a couple of seconds from now). Follow the redirect
+immediately — it works. Wait a few seconds and follow it again:
+
+```bash
+curl -i http://localhost:8080/<shortCode-from-above>
+```
+
+Expect `404 Not Found` — identical to a code that never existed. The stats endpoint for that same
+code also now returns `404`.
+
+Submit the *same* `url` again (without `expiresInSeconds` this time):
+
+```bash
+curl -i -X POST http://localhost:8080/api/links \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com/expires-soon"}'
+```
+
+Expect `201 Created` with a **different** `shortCode` than the expired one — the old code stays
+dead permanently; it is never reactivated.
+
 ### Submit a duplicate URL
 
 Submit the exact same `url` from the first `curl` above a second time. Expect `201 Created`
