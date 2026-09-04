@@ -19,13 +19,24 @@ public class ShortLinkService {
         this.entityManager = entityManager;
     }
 
+    /**
+     * Creates a short link for {@code longUrl}, or returns the existing one if this exact URL
+     * (after whitespace trimming) already has a short link — atomically, even under concurrent
+     * requests, via an {@code INSERT ... ON CONFLICT (long_url) DO NOTHING}. The sequence value
+     * consumed for a "losing" insert is simply never used again, which is expected/harmless
+     * (sequences are allowed to have gaps).
+     */
     @Transactional
     public ShortLink create(String longUrl) {
         String trimmed = longUrl.trim();
         long id = nextSequenceValue();
         String shortCode = ShortCodeEncoder.encode(id);
-        ShortLink shortLink = new ShortLink(id, shortCode, trimmed, OffsetDateTime.now());
-        return shortLinkRepository.save(shortLink);
+
+        return shortLinkRepository
+                .insertIfLongUrlAbsent(id, shortCode, trimmed, OffsetDateTime.now())
+                .orElseGet(() -> shortLinkRepository.findByLongUrl(trimmed)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "Insert conflicted on long_url but no existing row was found: " + trimmed)));
     }
 
     /**
