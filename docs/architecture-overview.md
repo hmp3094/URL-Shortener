@@ -10,6 +10,44 @@ JVM process and one database, deliberately, at the scale this project targets (s
 
 ## Components
 
+```mermaid
+flowchart TB
+    Client(["Client"])
+
+    subgraph App["Spring Boot app — single JVM"]
+        RLI["RateLimitInterceptor"]
+        LC["LinkController"]
+        RC["RedirectController"]
+        SC["StatsController"]
+        AEH["ApiExceptionHandler"]
+        Val["DestinationUrlValidator"]
+        Enc["ShortCodeEncoder"]
+        SLS["ShortLinkService"]
+        Cache[("Caffeine cache")]
+        Repo["ShortLinkRepository"]
+    end
+
+    DB[("PostgreSQL\nshort_links")]
+
+    Client -->|"POST /api/links"| RLI
+    Client -->|"GET /api/links/{code}/stats"| RLI
+    Client -->|"GET /{code}"| RC
+    RLI --> LC
+    RLI --> SC
+    LC --> Val
+    LC --> SLS
+    RC --> SLS
+    SC --> SLS
+    SLS --> Enc
+    SLS <--> Cache
+    SLS --> Repo
+    Repo <--> DB
+    LC -.-> AEH
+    RC -.-> AEH
+    SC -.-> AEH
+    AEH -.->|"error response"| Client
+```
+
 **HTTP layer** (one controller per capability, no shared "API" god-class):
 - `LinkController` — `POST /api/links`
 - `RedirectController` — `GET /{code}`
@@ -147,6 +185,22 @@ the cached path, which is exactly why it still fires even on a cache hit (see "C
 Same shape as redirect (rate-limited, resolved via an *uncached* read so counts are never stale,
 same expired-vs-never-existed 404 collapse) but returns the stats body instead of redirecting on
 success. See `docs/api.yaml` for the exact contract.
+
+### Short link lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Live: POST /api/links (new URL)
+    Live --> Live: POST /api/links (duplicate, still live)\nreturns same code
+    Live --> Live: GET /{code}\nclick_count++, cache-aside
+    Live --> Expired: expires_at passes\n(only if one was set)
+    Expired --> Expired: GET /{code} or /stats\n404, identical to never-existed
+    Expired --> Live: POST /api/links (resubmit)\nold row retired, new code issued
+```
+
+A link with no `expiresInSeconds` never leaves the `Live` state. One row's identity (`short_code`)
+never survives an `Expired → Live` transition — that transition deletes the old row and inserts a
+new one, which is precisely the retire-and-reissue behavior from "Key decisions" below.
 
 ## Key decisions (summary — full rationale in `design-decisions.md`)
 
