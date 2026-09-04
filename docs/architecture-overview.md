@@ -95,12 +95,7 @@ expiration feature (a `WITH ... DELETE ... INSERT` statement that looked atomic 
 `docs/scenarios/ambiguous-link-expiration.md`) that reasoning about the SQL alone had missed.
 
 **Governance.** `.specify/memory/constitution.md` is treated as binding, not aspirational —
-checked before and during implementation, not just at project start. When actual delivered
-scope (no accounts, synchronous exact click counting, indistinguishable expired/never-existed
-responses) diverged from what the constitution originally asserted, the divergence was reconciled
-explicitly through versioned amendments (v1.2.0 → v2.0.0 → v3.0.0), not left silently
-inconsistent. One principle (Test-First) was deliberately *not* loosened to match a past
-violation — the violation was logged instead, and the principle stayed intact for future work.
+checked before and during implementation, not just at project start. principle I (Test-First) is the most important of all the principles and hence all work was done from a test first approach. This was done to make sure requirements are followed from the start.
 
 ## Control flow
 
