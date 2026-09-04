@@ -16,7 +16,9 @@ public class RedirectController {
         this.shortLinkService = shortLinkService;
     }
 
-    @GetMapping("/{code}")
+    // Constrained to exactly 6 alphanumeric characters so this catch-all-looking route can't
+    // shadow other root-level paths such as /swagger-ui.html or /actuator.
+    @GetMapping("/{code:[a-zA-Z0-9]{6}}")
     public ResponseEntity<Void> redirectToLongUrl(@PathVariable String code) {
         ShortLink shortLink = shortLinkService.resolve(code);
         return ResponseEntity.status(HttpStatus.FOUND)

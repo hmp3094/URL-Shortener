@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 /** Maps every domain exception to the shared {@link ErrorResponse} shape so every error response looks the same. */
 @RestControllerAdvice
@@ -24,6 +25,15 @@ public class ApiExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNotFound(ShortLinkNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of("NOT_FOUND", ex.getMessage()));
+    }
+
+    // Covers both genuinely unmapped paths and short-code path segments that don't match the
+    // {code:[a-zA-Z0-9]{6}} pattern, so a malformed code returns the same response as one that
+    // simply never existed, rather than leaking whether the format itself was invalid.
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoHandlerFound(NoHandlerFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of("NOT_FOUND", "No resource found for " + ex.getHttpMethod() + " " + ex.getRequestURL()));
     }
 
     @ExceptionHandler(RateLimitExceededException.class)
