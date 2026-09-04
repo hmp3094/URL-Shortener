@@ -28,6 +28,10 @@ duplicate-URL reuse, invalid-URL rejection, rate limiting).
 
 ## Project docs
 
+- [docs/architecture-overview.md](docs/architecture-overview.md) — components, tools/execution
+  approach, control flow, key decisions at a glance
+- [docs/engineering-summary.md](docs/engineering-summary.md) — plan, artifacts, risks,
+  validation, assumptions, and limitations for the whole project
 - [docs/requirements.md](docs/requirements.md) — what the API does and why
 - [docs/design-decisions.md](docs/design-decisions.md) — stack, architecture, and the reasoning
   behind each choice
