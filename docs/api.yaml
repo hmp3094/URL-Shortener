@@ -3,8 +3,9 @@ info:
   title: URL Shortener - Shorten & Redirect Core API
   version: "1.0.0"
   description: >
-    Core API for creating short links from long URLs and resolving them via redirect.
-    Analytics endpoints are out of scope for this contract (separate feature).
+    Core API for creating short links from long URLs, resolving them via redirect, and reporting
+    click statistics. Statistics are a single running total per link (count + last-accessed time),
+    not a time-series or per-click event log.
 servers:
   - url: /
 paths:
@@ -78,6 +79,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/links/{code}/stats:
+    get:
+      operationId: getStats
+      summary: Get click statistics for a short link
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: 6-character short code (case-insensitive)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current click count and access time for this short code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkStatsResponse'
+        '404':
+          description: No short link exists for this code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     CreateLinkRequest:
@@ -106,6 +131,28 @@ components:
         createdAt:
           type: string
           format: date-time
+    LinkStatsResponse:
+      type: object
+      properties:
+        shortCode:
+          type: string
+          example: "a1b2c3"
+        longUrl:
+          type: string
+          format: uri
+          example: "https://example.com/some/very/long/path?with=query"
+        clickCount:
+          type: integer
+          format: int64
+          example: 42
+        createdAt:
+          type: string
+          format: date-time
+        lastAccessedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Null if the link has never been visited
     ErrorResponse:
       type: object
       properties:

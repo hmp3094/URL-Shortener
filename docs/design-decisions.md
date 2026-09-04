@@ -75,6 +75,35 @@ replica, a code that has never been cached and is requested while Postgres is br
 will still fail. The cache makes the *common* case (a previously-resolved code) resilient to a
 brief Postgres outage; it can't make an uncached cold lookup succeed with no database at all.
 
+## Click tracking: exact vs. approximate counting
+
+Each short link tracks a click count and a last-accessed timestamp, exposed via
+`GET /api/links/{code}/stats`. The count is incremented with a single atomic
+`UPDATE ... SET click_count = click_count + 1 WHERE short_code = ?` against Postgres on every
+redirect — not batched, not cached, not folded into the `resolve()` lookup used for the redirect
+itself.
+
+"Track clicks" doesn't say on its own whether the count needs to be exactly right. That's an
+ambiguous requirement, and the two readings pull in different directions given the redirect path
+is already cache-aside (see Redirect caching, above):
+
+- **Exact count, on every redirect** (chosen): a synchronous atomic update per redirect. Correct
+  under concurrent redirects for the same code — Postgres serializes the row-level update — but it
+  reintroduces a database write on every redirect, including ones whose destination lookup was
+  served entirely from cache. That partially undercuts the reason the cache exists.
+- **Approximate count, batched/async**: buffer increments in memory per instance and flush
+  periodically, or fire the update asynchronously off the request thread. Keeps every redirect off
+  the database, but the count can lag or be lost entirely if the instance crashes before a flush,
+  and a multi-instance deployment would need to merge counts across instances.
+
+Exact was chosen because this is a single-instance deployment at a scale where one extra row
+update per redirect is not a meaningful cost, and a stats number that's silently wrong is a worse
+outcome than a small, well-understood performance trade-off. If this needed to scale past a single
+instance or a much higher redirect volume, batched/async counting is the documented next step. This
+decision, and the options weighed against it, are also walked through in
+`docs/scenarios/brownfield-click-analytics.md`, which covers the ambiguity as part of that
+scenario's execution.
+
 ## Rate limiting on link creation
 
 A small hand-rolled in-memory per-IP token bucket (a map keyed by client IP, refilled on a fixed
