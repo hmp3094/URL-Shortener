@@ -3,6 +3,7 @@ package com.urlshortener.link;
 import com.urlshortener.link.dto.CreateLinkRequest;
 import com.urlshortener.link.dto.LinkResponse;
 import com.urlshortener.validation.DestinationUrlValidator;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,7 +25,7 @@ public class LinkController {
     }
 
     @PostMapping("/api/links")
-    public ResponseEntity<LinkResponse> createShortLink(@RequestBody CreateLinkRequest request) {
+    public ResponseEntity<LinkResponse> createShortLink(@Valid @RequestBody CreateLinkRequest request) {
         destinationUrlValidator.validate(request.url());
 
         ShortLink created = shortLinkService.create(request.url());
