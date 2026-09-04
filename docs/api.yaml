@@ -1,0 +1,122 @@
+openapi: 3.0.3
+info:
+  title: URL Shortener - Shorten & Redirect Core API
+  version: "1.0.0"
+  description: >
+    Core API for creating short links from long URLs and resolving them via redirect.
+    Analytics endpoints are out of scope for this contract (separate feature).
+servers:
+  - url: /
+paths:
+  /api/links:
+    post:
+      operationId: createShortLink
+      summary: Create a short link for a long URL
+      description: >
+        Creates a new short link for the given destination URL. If the destination URL
+        (exact string match, after whitespace trimming) already has a short link, returns
+        the existing one instead of creating a duplicate.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLinkRequest'
+      responses:
+        '201':
+          description: Short link created (or an existing matching one returned)
+          headers:
+            Location:
+              description: The fully-qualified short URL
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkResponse'
+        '400':
+          description: The submitted URL failed validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many creation requests from this caller
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /{code}:
+    get:
+      operationId: redirectToLongUrl
+      summary: Resolve a short code and redirect to its long URL
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: 6-character short code (case-insensitive)
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to the long URL associated with this short code
+          headers:
+            Location:
+              description: The original long URL
+              schema:
+                type: string
+                format: uri
+        '404':
+          description: No short link exists for this code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    CreateLinkRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+          maxLength: 2048
+          example: "https://example.com/some/very/long/path?with=query"
+    LinkResponse:
+      type: object
+      properties:
+        shortCode:
+          type: string
+          example: "a1b2c3"
+        shortUrl:
+          type: string
+          format: uri
+          example: "https://short.example/a1b2c3"
+        longUrl:
+          type: string
+          format: uri
+          example: "https://example.com/some/very/long/path?with=query"
+        createdAt:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          description: Human-readable explanation
+          example: "URL scheme must be http or https"
+        timestamp:
+          type: string
+          format: date-time
