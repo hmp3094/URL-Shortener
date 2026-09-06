@@ -18,14 +18,18 @@ migrations automatically on startup, and starts the API. Once
 
 Swagger UI is available at `http://localhost:8080/swagger-ui.html` for interactive exploration.
 
-## Open the web UI
-
-`http://localhost:8080/` serves a small page for shortening a link (with an optional custom
-alias and expiration) and looking up an existing code's stats — the same two endpoints below,
-with a form in front of them. Nothing to install or build; it's served directly by the running
-app.
-
 ## Try it
+
+`http://localhost:8080/` serves a small page for shortening a link (with an optional expiration)
+and looking up an existing code's stats — the easiest way to try the system, no `curl` required.
+Nothing to install or build; it's served directly by the running app. (The form also has a
+custom-alias field, but that capability lives on a separate branch not yet merged here — see
+`docs/scenarios/greenfield-web-ui.md`'s Risks section.)
+
+## Exercise the API directly
+
+The scenarios below drive the same two endpoints the UI calls, but exactly — useful for
+verifying precise behavior (status codes, error shapes, edge cases) rather than casual use.
 
 > **Windows/PowerShell**: `curl` is aliased to `Invoke-WebRequest`, which doesn't support `-i`,
 > `-X`, or `-d` the way real curl does, and the `\` line continuations below are a bash-ism.

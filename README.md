@@ -62,6 +62,11 @@ migrations automatically on startup, and starts the API on `http://localhost:808
 
 ## Try it
 
+Open `http://localhost:8080/` in a browser — shorten a link and check its stats from there,
+no `curl` required.
+
+To exercise the API directly instead:
+
 ```bash
 # Create a short link
 curl -i -X POST http://localhost:8080/api/links \
@@ -75,8 +80,8 @@ curl -i http://localhost:8080/<shortCode>
 curl -i http://localhost:8080/api/links/<shortCode>/stats
 ```
 
-See [docs/getting-started.md](docs/getting-started.md) for every other user-facing scenario:
-setting an expiration, duplicate-URL reuse, invalid-URL rejection, rate limiting.
+See [docs/getting-started.md](docs/getting-started.md) for every other API scenario: setting an
+expiration, duplicate-URL reuse, invalid-URL rejection, rate limiting.
 
 ## Three scenarios
 
