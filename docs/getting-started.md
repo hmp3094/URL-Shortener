@@ -18,6 +18,13 @@ migrations automatically on startup, and starts the API. Once
 
 Swagger UI is available at `http://localhost:8080/swagger-ui.html` for interactive exploration.
 
+## Open the web UI
+
+`http://localhost:8080/` serves a small page for shortening a link (with an optional custom
+alias and expiration) and looking up an existing code's stats — the same two endpoints below,
+with a form in front of them. Nothing to install or build; it's served directly by the running
+app.
+
 ## Try it
 
 > **Windows/PowerShell**: `curl` is aliased to `Invoke-WebRequest`, which doesn't support `-i`,

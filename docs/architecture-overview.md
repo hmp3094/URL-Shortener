@@ -52,6 +52,9 @@ flowchart TB
 - `LinkController` — `POST /api/links`
 - `RedirectController` — `GET /{code}`
 - `StatsController` — `GET /api/links/{code}/stats`
+- Web UI — `GET /` serves a hand-written static page (`src/main/resources/static/`) that calls
+  the two endpoints above via `fetch()`; no controller of its own, just Spring Boot's default
+  static-resource serving and one config change to enable it (see `design-decisions.md`)
 - `ApiExceptionHandler` — every domain exception (`InvalidUrlException`, `ShortLinkNotFoundException`, `RateLimitExceededException`, bean-validation failures) maps to the same `ErrorResponse` shape, in one place
 
 **Domain logic**:

@@ -82,7 +82,7 @@ setting an expiration, duplicate-URL reuse, invalid-URL rejection, rate limiting
 
 | Scenario | What it demonstrates | PR | Scenario writeup |
 |---|---|---|---|
-| **Greenfield** | Core API built from scratch: create, redirect, duplicate reuse, validation, rate limiting | [#1](https://github.com/hmp3094/URL-Shortener/pull/1) | — |
+| **Greenfield** | Web UI for shortening and stats lookup — a wholly new kind of artifact (a served page) introduced with no framework and no build step | — (pending) | [greenfield-web-ui.md](docs/scenarios/greenfield-web-ui.md) |
 | **Brownfield** | Click analytics added to the already-shipped core, including the sync-vs-async counting trade-off | [#2](https://github.com/hmp3094/URL-Shortener/pull/2) | [brownfield-click-analytics.md](docs/scenarios/brownfield-click-analytics.md) |
 | **Ambiguous requirement** | Link expiration (TTL) — five hidden decision points behind "add expiration," decomposed and resolved, including a real concurrency bug found and fixed | [#3](https://github.com/hmp3094/URL-Shortener/pull/3) | [ambiguous-link-expiration.md](docs/scenarios/ambiguous-link-expiration.md) |
 
