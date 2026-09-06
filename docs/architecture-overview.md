@@ -55,14 +55,15 @@ flowchart TB
 - Web UI — `GET /` serves a hand-written static page (`src/main/resources/static/`) that calls
   the two endpoints above via `fetch()`; no controller of its own, just Spring Boot's default
   static-resource serving and one config change to enable it (see `design-decisions.md`)
-- `ApiExceptionHandler` — every domain exception (`InvalidUrlException`, `ShortLinkNotFoundException`, `RateLimitExceededException`, bean-validation failures) maps to the same `ErrorResponse` shape, in one place
+- `ApiExceptionHandler` — every domain exception (`InvalidUrlException`, `ShortLinkNotFoundException`, `RateLimitExceededException`, `InvalidAliasException`, `AliasAlreadyTakenException`, `DestinationAlreadyShortenedException`, bean-validation failures) maps to the same `ErrorResponse` shape, in one place
 
 **Domain logic**:
-- `ShortLinkService` — the only thing that touches persistence; owns `create`, `resolve`, `recordClick`, `getStatsSnapshot`
+- `ShortLinkService` — the only thing that touches persistence; owns `create` (auto-generated or custom-alias overload), `resolve`, `recordClick`, `getStatsSnapshot`
 - `ShortLink` — the JPA entity; also owns `isExpired()`, the single point of truth for expiry logic
-- `ShortLinkRepository` — native SQL for the operations that need to be atomic (`insertIfLongUrlAbsent`, `deleteIfExpired`, `recordClick`) plus two derived-query lookups
-- `ShortCodeEncoder` — sequence value → 6-character lowercase alphanumeric code
+- `ShortLinkRepository` — native SQL for the operations that need to be atomic (`insertIfLongUrlAbsent`, `insertWithAlias`, `deleteIfExpired`, `recordClick`) plus two derived-query lookups
+- `ShortCodeEncoder` — sequence value → 6-character lowercase alphanumeric code (used only when no custom alias is supplied)
 - `DestinationUrlValidator` — scheme allow-list + SSRF address-range rejection, no library
+- `CustomAliasValidator` — alias shape check (length, character set, reserved names) before any database work; availability itself is resolved atomically at insert time, not here
 
 **Cross-cutting**:
 - `CacheConfig` (Caffeine) — cache-aside in front of the redirect lookup

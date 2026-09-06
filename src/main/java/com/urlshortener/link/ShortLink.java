@@ -18,7 +18,7 @@ public class ShortLink {
     @Id
     private Long id;
 
-    @Column(name = "short_code", nullable = false, unique = true, length = 6)
+    @Column(name = "short_code", nullable = false, unique = true, length = 32)
     private String shortCode;
 
     @Column(name = "long_url", nullable = false, unique = true)

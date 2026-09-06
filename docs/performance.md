@@ -52,6 +52,30 @@ numbers above. Expected: `ShortLink.isExpired()` is a single in-memory timestamp
 an already-fetched entity, not an extra database round trip, so it doesn't add to the cost the way
 click tracking's `UPDATE` did.
 
+## Custom alias: re-measurement outstanding
+
+The `feature/custom-alias` branch widens the redirect route from
+`GET /{code:[a-zA-Z0-9]{6}}` to `GET /{code:[a-zA-Z0-9_-]{3,32}}` — a change to the redirect
+path, which the constitution's Reliability & Data Standards section requires fresh p50/p95
+numbers for before merge. **This re-measurement has not been performed**: this implementation
+session had no Docker, Maven, or Java available in its environment, so neither the app nor the
+existing `curl`-loop methodology above could actually be run here. Before merging, repeat the
+same procedure used for the two prior measurements:
+
+```bash
+docker compose up --build   # in one terminal
+CODE="00000l"                # any already-created, still-live short code
+curl -s -o /dev/null http://localhost:8080/$CODE   # warm the cache
+for i in $(seq 1 200); do
+  curl -s -o /dev/null -w "%{time_total}\n" http://localhost:8080/$CODE
+done
+```
+
+and record the resulting p50/p95 in a new row here next to the link-expiration baseline above.
+The regex change itself is not expected to add measurable cost (it's still a single compiled
+pattern match against a path segment, same as before), but per the constitution this must be
+measured and documented, not assumed.
+
 ## Notes
 
 - This measures the cache-hit path only (the code was resolved once beforehand to warm the
