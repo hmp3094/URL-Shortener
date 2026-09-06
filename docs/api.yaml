@@ -17,8 +17,10 @@ paths:
       summary: Create a short link for a long URL
       description: >
         Creates a new short link for the given destination URL. If the destination URL
-        (exact string match, after whitespace trimming) already has a short link, returns
-        the existing one instead of creating a duplicate.
+        (exact string match, after whitespace trimming) already has a short link and no
+        alias was requested, returns the existing one instead of creating a duplicate. A
+        caller may optionally supply an `alias` to use as the short code instead of an
+        auto-generated one.
       requestBody:
         required: true
         content:
@@ -39,11 +41,32 @@ paths:
               schema:
                 $ref: '#/components/schemas/LinkResponse'
         '400':
-          description: The submitted URL failed validation
+          description: The submitted URL or alias failed validation
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: >
+            Either the requested alias is already in use (`error: ALIAS_TAKEN`), or the
+            destination URL already has a live short link under a different code and an
+            alias was requested (`error: URL_ALREADY_SHORTENED`). The two are
+            distinguished by the `error` field, never by status code alone.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                aliasTaken:
+                  value:
+                    error: ALIAS_TAKEN
+                    message: "Alias 'promo' is already in use"
+                    timestamp: "2026-09-04T12:00:00Z"
+                urlAlreadyShortened:
+                  value:
+                    error: URL_ALREADY_SHORTENED
+                    message: "This URL already has a short link under a different code"
+                    timestamp: "2026-09-04T12:00:00Z"
         '429':
           description: Too many creation requests from this caller
           headers:
@@ -63,7 +86,9 @@ paths:
         - name: code
           in: path
           required: true
-          description: 6-character short code (case-insensitive)
+          description: >
+            Short code, case-insensitive: either an auto-generated 6-character code or a
+            custom alias (3-32 characters).
           schema:
             type: string
       responses:
@@ -89,7 +114,9 @@ paths:
         - name: code
           in: path
           required: true
-          description: 6-character short code (case-insensitive)
+          description: >
+            Short code, case-insensitive: either an auto-generated 6-character code or a
+            custom alias (3-32 characters).
           schema:
             type: string
       responses:
@@ -137,6 +164,18 @@ components:
             Optional. How long the short link should remain resolvable. Omit for a link that
             never expires (the default — expiry is opt-in, not automatic).
           example: 3600
+        alias:
+          type: string
+          nullable: true
+          minLength: 3
+          maxLength: 32
+          pattern: '^[A-Za-z0-9_-]{3,32}$'
+          description: >
+            Optional. A caller-chosen short code to use instead of an auto-generated one.
+            Letters, digits, hyphens, and underscores only; 3-32 characters. Matching is
+            case-insensitive. Reserved names (api, actuator, health, error, swagger-ui) are
+            rejected. Omit to receive an auto-generated code (unchanged default behavior).
+          example: "summer-sale"
     LinkResponse:
       type: object
       properties:

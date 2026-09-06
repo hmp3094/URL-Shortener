@@ -5,7 +5,7 @@
 | Field | Type | Constraints | Notes |
 |---|---|---|---|
 | `id` | `BIGINT` | Primary key, from `short_link_seq` | Source value for the short code's encoding |
-| `short_code` | `VARCHAR(6)` | `NOT NULL`, `UNIQUE`, `CHECK (short_code ~ '^[a-z0-9]{6}$')` | Lowercase alphanumeric, stored/compared case-insensitively |
+| `short_code` | `VARCHAR(32)` | `NOT NULL`, `UNIQUE`, `CHECK (short_code ~ '^[a-z0-9_-]{3,32}$')` | Either an auto-generated 6-character lowercase alphanumeric code, or a caller-chosen custom alias (3-32 chars, lowercase letters/digits/hyphen/underscore); both share one namespace and are stored/compared case-insensitively |
 | `long_url` | `TEXT` | `NOT NULL`, `UNIQUE`, max length 2048 (app-level validation) | Exact string as submitted, after whitespace trimming only — no other normalization. Used directly as the redirect target |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL`, `DEFAULT now()` | Set once at insert; never changes |
 | `click_count` | `BIGINT` | `NOT NULL`, `DEFAULT 0` | Incremented atomically on every successful redirect (see Design Decisions) |
@@ -22,6 +22,12 @@
 - `long_url` must not exceed 2048 characters (rejected outright, never truncated).
 - A request failing any rule above creates no row and returns a `400` with a machine-readable
   reason (see `api.yaml`).
+- If a custom `alias` is supplied instead of an auto-generated code: it must be 3-32 characters
+  from `[a-z0-9_-]` (case-insensitive) and not a reserved name (`api`, `actuator`, `health`,
+  `error`, `swagger-ui`) — checked before any database work. Availability is then resolved
+  atomically at insert time via `ON CONFLICT (short_code) DO NOTHING`, never by a separate
+  application-level check, per the same collision-avoidance rule already used for the
+  auto-generated path. A conflicting request never overwrites the existing row.
 
 ### Lifecycle
 
@@ -35,10 +41,18 @@ updated in place on every redirect. The operations against a row are: insert-if-
 as not found), and increment (click tracking). Ownership transfer remains deferred to a later
 feature; there's still no accounts model.
 
+One exception to "insert-if-absent-or-expired returns the existing row": when a creation request
+supplies a custom `alias` and the destination URL already has a live (non-expired) mapping under
+a *different* code, the request is rejected outright (`409 URL_ALREADY_SHORTENED`) rather than
+silently returning that existing mapping — the caller explicitly asked for a specific alias, so
+handing back a different code without saying so would be misleading. The no-alias path is
+unchanged: it still returns the existing mapping silently, exactly as before.
+
 ### Indexes
 
 - Primary key index on `id` (implicit).
-- Unique index on `short_code` (supports `GET /{code}` lookups — the hot path).
+- Unique index on `short_code` (supports `GET /{code}` lookups — the hot path — and doubles as
+  the atomic conflict target for both auto-generated codes and custom aliases).
 - Unique index on `long_url` (supports the `ON CONFLICT (long_url)` duplicate-detection insert).
 
 ## Migration
@@ -71,6 +85,19 @@ table.
 
 ```sql
 ALTER TABLE short_links DROP COLUMN expires_at;
+```
+
+`src/main/resources/db/migration/V4__widen_short_code_for_custom_alias.sql` widens `short_code`
+to `VARCHAR(32)` and replaces its format check to allow 3-32 characters from `[a-z0-9_-]` (was a
+fixed 6-character `[a-z0-9]`), to accommodate custom aliases alongside auto-generated codes.
+
+**Rollback plan** (only safe if no alias longer than 6 characters exists):
+
+```sql
+ALTER TABLE short_links ALTER COLUMN short_code TYPE VARCHAR(6);
+ALTER TABLE short_links DROP CONSTRAINT chk_short_links_short_code_format;
+ALTER TABLE short_links ADD CONSTRAINT chk_short_links_short_code_format
+  CHECK (short_code ~ '^[a-z0-9]{6}$');
 ```
 
 No other tables exist in this version — no accounts, no raw click-event log (click tracking is an

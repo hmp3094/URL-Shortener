@@ -3,8 +3,8 @@
 ## Prerequisites
 
 - Docker and Docker Compose (the only requirement to run the full system end-to-end)
-- For local development without full containerization: Java 21, Maven, and Docker (for Postgres
-  only, via `docker compose up db`)
+- For local development without full containerization: Java 21 and Maven — running the test
+  suite does not require Docker (see "Run tests" below)
 
 ## Run the whole system
 
@@ -143,5 +143,6 @@ window resets.
 mvn test
 ```
 
-Runs unit tests (no external dependencies) and integration/contract tests (Testcontainers spins
-up a real, disposable Postgres container automatically — no manual database setup needed).
+Runs unit tests (no external dependencies) and integration/contract tests against a real Postgres
+instance (Zonky's embedded-postgres starts an actual Postgres binary directly on the host,
+automatically — no Docker, no manual database setup, no external dependency to install).

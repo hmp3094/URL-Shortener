@@ -39,6 +39,42 @@ though the encoding scheme already guarantees uniqueness by itself.
 loop and doesn't get the "collision-free by construction" property. UUID-based codes were also
 considered and rejected as too long for a short link's purpose.
 
+## Custom aliases
+
+A caller may optionally supply an `alias` on creation (3-32 characters, `[a-z0-9_-]`,
+case-insensitive) instead of receiving an auto-generated code. Aliases and auto-generated codes
+share the same `short_code` column, the same `UNIQUE` constraint, and the same redirect route —
+an alias is simply a short code that happened to be chosen by its caller.
+
+Availability is resolved atomically at insert time (`INSERT ... ON CONFLICT (short_code) DO
+NOTHING`), mirroring the collision-avoidance approach already used for auto-generated codes,
+rather than a check-then-insert that could race. A subtlety this raises that auto-generated
+codes never did: an `INSERT ... ON CONFLICT (short_code) ...` only suppresses a violation on
+that column — a *second*, unsuppressed unique constraint (`long_url`) can still fire in the same
+statement. That asymmetry is used deliberately: it lets one statement distinguish "alias already
+taken" from "this URL already has a short link under a different code" atomically, with no
+pre-check race window.
+
+The existing redirect route (`GET /{code:[a-zA-Z0-9]{6}}`) was deliberately constrained to
+exactly 6 characters specifically so it couldn't shadow root-level system paths like `/actuator`.
+Widening it to `[a-zA-Z0-9_-]{3,32}` to fit aliases reopens that shape risk in theory (e.g.
+`actuator` is 8 alphanumeric characters, now within range) — but the real guard was moved earlier
+in the pipeline: `CustomAliasValidator` rejects every reserved name (`api`, `actuator`, `health`,
+`error`, `swagger-ui`) before a row can ever be created, so no request can ever make
+`resolve("actuator")` return anything but the same 404 as any other unknown code. Spring's own
+routing, which ranks a literal mapping above a templated one for the same URI, is a secondary,
+already-present safety net, not the primary guarantee.
+
+**Alternative considered**: pre-checking alias availability with a `SELECT` before inserting —
+rejected as a TOCTOU race under concurrent requests for the same alias, which is exactly the
+failure mode the atomic `ON CONFLICT` approach exists to prevent.
+
+`v3` (springdoc's `/v3/api-docs`) is deliberately *not* in the reserved-name list: it's only 2
+characters, already unreachable as an alias below the 3-character minimum, and the real springdoc
+route is a two-segment path the single-segment `{code}` route never matches regardless. Listing
+it would have been dead defense with no actual collision to prevent — caught by a failing test
+during implementation, not assumed correct from the initial design.
+
 ## Duplicate URL detection and creation concurrency
 
 `long_url` carries a `UNIQUE` database constraint (plain exact-string match — no normalization
