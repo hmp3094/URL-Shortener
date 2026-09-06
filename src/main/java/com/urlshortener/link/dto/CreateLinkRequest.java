@@ -15,5 +15,10 @@ public record CreateLinkRequest(
         // the link never expires. No default duration is applied when this is omitted.
         @Positive(message = "expiresInSeconds must be positive")
         @Max(value = 31_536_000, message = "expiresInSeconds must not exceed 31536000 (365 days)")
-        Long expiresInSeconds) {
+        Long expiresInSeconds,
+
+        // Opt-in only: null (the default) means auto-generate a short code, exactly as before
+        // this field existed. Format/reserved-name checks happen in CustomAliasValidator, not
+        // bean-validation annotations, since the reserved-word rule can't be expressed as one.
+        String alias) {
 }

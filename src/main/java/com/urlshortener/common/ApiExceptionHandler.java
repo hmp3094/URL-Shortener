@@ -1,8 +1,11 @@
 package com.urlshortener.common;
 
+import com.urlshortener.link.AliasAlreadyTakenException;
+import com.urlshortener.link.DestinationAlreadyShortenedException;
 import com.urlshortener.link.ShortLinkNotFoundException;
 import com.urlshortener.link.dto.ErrorResponse;
 import com.urlshortener.ratelimit.RateLimitExceededException;
+import com.urlshortener.validation.InvalidAliasException;
 import com.urlshortener.validation.InvalidUrlException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -25,6 +28,24 @@ public class ApiExceptionHandler {
                 .body(ErrorResponse.of("VALIDATION_ERROR", ex.getMessage()));
     }
 
+    @ExceptionHandler(InvalidAliasException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidAlias(InvalidAliasException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of("VALIDATION_ERROR", ex.getMessage()));
+    }
+
+    @ExceptionHandler(AliasAlreadyTakenException.class)
+    public ResponseEntity<ErrorResponse> handleAliasAlreadyTaken(AliasAlreadyTakenException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("ALIAS_TAKEN", ex.getMessage()));
+    }
+
+    @ExceptionHandler(DestinationAlreadyShortenedException.class)
+    public ResponseEntity<ErrorResponse> handleDestinationAlreadyShortened(DestinationAlreadyShortenedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("URL_ALREADY_SHORTENED", ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleBeanValidation(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
@@ -40,9 +61,9 @@ public class ApiExceptionHandler {
                 .body(ErrorResponse.of("NOT_FOUND", ex.getMessage()));
     }
 
-    // Covers both genuinely unmapped paths and short-code path segments that don't match the
-    // {code:[a-zA-Z0-9]{6}} pattern, so a malformed code returns the same response as one that
-    // simply never existed, rather than leaking whether the format itself was invalid.
+    // Covers both genuinely unmapped paths and short-code/alias path segments that don't match
+    // the {code:[a-zA-Z0-9_-]{3,32}} pattern, so a malformed code returns the same response as
+    // one that simply never existed, rather than leaking whether the format itself was invalid.
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoHandlerFound(NoHandlerFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)

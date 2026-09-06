@@ -23,17 +23,20 @@ public class RedirectController {
         this.shortLinkService = shortLinkService;
     }
 
-    // Constrained to exactly 6 alphanumeric characters so this catch-all-looking route can't
-    // shadow other root-level paths such as /swagger-ui.html or /actuator.
+    // Constrained to 3-32 characters from the alias/code charset so this catch-all-looking route
+    // can't shadow other root-level paths such as /swagger-ui.html (contains a dot) or /actuator
+    // (blocked at alias-creation time by CustomAliasValidator's reserved-name list, so no row for
+    // "actuator" can ever exist to resolve — the primary guard, not this regex; Spring's own
+    // routing also ranks Actuator's literal mapping above this templated one as defense-in-depth).
     @Operation(summary = "Resolve a short code and redirect to its long URL")
     @ApiResponses({
             @ApiResponse(responseCode = "302", description = "Redirect to the long URL associated with this short code"),
             @ApiResponse(responseCode = "404", description = "No short link exists for this code",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @GetMapping("/{code:[a-zA-Z0-9]{6}}")
+    @GetMapping("/{code:[a-zA-Z0-9_-]{3,32}}")
     public ResponseEntity<Void> redirectToLongUrl(
-            @Parameter(description = "6-character short code (case-insensitive)") @PathVariable String code) {
+            @Parameter(description = "Short code or custom alias (case-insensitive)") @PathVariable String code) {
         ShortLink shortLink = shortLinkService.resolve(code);
         // Checked here, not inside resolve(): resolve() is @Cacheable and its body is skipped
         // entirely on a cache hit, so an expiry check placed inside it would silently stop firing

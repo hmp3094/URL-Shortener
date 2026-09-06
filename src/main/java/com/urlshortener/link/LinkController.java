@@ -34,7 +34,11 @@ public class LinkController {
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Short link created (or an existing matching one returned)",
                     content = @Content(schema = @Schema(implementation = LinkResponse.class))),
-            @ApiResponse(responseCode = "400", description = "The submitted URL failed validation",
+            @ApiResponse(responseCode = "400", description = "The submitted URL or alias failed validation",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409",
+                    description = "The requested alias is already taken, or the URL already has a short link "
+                            + "under a different code and an alias was requested",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "429", description = "Too many creation requests from this caller",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -43,7 +47,7 @@ public class LinkController {
     public ResponseEntity<LinkResponse> createShortLink(@Valid @RequestBody CreateLinkRequest request) {
         destinationUrlValidator.validate(request.url());
 
-        ShortLink created = shortLinkService.create(request.url(), request.expiresInSeconds());
+        ShortLink created = shortLinkService.create(request.url(), request.expiresInSeconds(), request.alias());
 
         String shortUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/{code}")
