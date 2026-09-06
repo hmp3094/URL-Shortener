@@ -22,9 +22,9 @@ Swagger UI is available at `http://localhost:8080/swagger-ui.html` for interacti
 
 `http://localhost:8080/` serves a small page for shortening a link (with an optional expiration)
 and looking up an existing code's stats — the easiest way to try the system, no `curl` required.
-Nothing to install or build; it's served directly by the running app. (The form also has a
-custom-alias field, but that capability lives on a separate branch not yet merged here — see
-`docs/scenarios/greenfield-web-ui.md`'s Risks section.)
+Nothing to install or build; it's served directly by the running app.
+
+![The shortening form and stats lookup, side by side](scenarios/ui-main.png)
 
 ## Exercise the API directly
 

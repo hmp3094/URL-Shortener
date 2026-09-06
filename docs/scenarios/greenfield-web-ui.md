@@ -85,15 +85,35 @@ by inspection alone:
   inherited from `main`, unrelated to this feature) reproduce identically here, confirming the
   same root cause and the same unaffected scope.
 - No browser-automation tooling (no `chromium-cli`, no Node/Playwright) was available in the
-  environment this feature was built in, so the quickstart scenarios were run as direct HTTP
+  environment this feature was built in, so the quickstart scenarios were first run as direct HTTP
   calls matching exactly what `app.js` sends and parses, against a real running instance, with the
-  rendering logic traced by hand against those real responses — not a substitute for an actual
-  rendered screenshot, but real end-to-end verification through the HTTP layer rather than
-  inspection of the code alone.
+  rendering logic traced by hand against those real responses. The screenshots below, taken
+  separately in an actual browser, close most of that gap — see Risks/limitations for what's
+  still unconfirmed.
 - Confirmed directly: shortening a URL and receiving a real short link back; a malformed URL
   rejected with its specific validation message; a stats lookup reflecting an actual redirect
   (`clickCount` moving from `0` to `1`, `lastAccessedAt` populating); a nonexistent code returning
   the plain "not found" response the page shows without alteration.
+
+The page as it actually renders, in a real browser (dark mode, per the visitor's system
+preference):
+
+**Initial state** — both cards visible, no accounts or history in sight:
+
+![The shortening form and stats lookup, side by side](ui-main.png)
+
+**A successful shorten** — the result appears in place, with a working copy control:
+
+![A short link result showing the copied short URL](ui-shorten-result.png)
+
+**A rejected submission** — plain-language, not a raw error payload:
+
+![An inline validation error for a malformed URL](ui-error.png)
+
+**A stats lookup** — click count, creation time, last-used time, and expiration, all from the
+existing API with nothing added:
+
+![Stats for a just-created link showing zero clicks](ui-stats.png)
 
 ## Risks / limitations
 
@@ -108,5 +128,8 @@ by inspection alone:
 - No automated coverage exists for interactive JavaScript behavior (form submission, the copy
   action, error rendering) — a deliberate scope decision (see `specs/002-web-ui/plan.md`), not an
   oversight, since introducing a JS test runner would be the first build-tooling dependency
-  anywhere in this project. Manual verification in an actual browser, not just via direct HTTP
-  calls, is still worth doing before this is considered fully validated.
+  anywhere in this project. The screenshots above confirm the visual side of form submission,
+  error rendering, and the stats lookup in an actual browser; the copy-to-clipboard action itself
+  (and its fallback for browsers/contexts where the Clipboard API is unavailable) and the
+  responsive layout at a phone-sized viewport were not captured and remain unverified visually —
+  worth a quick check before this is considered fully validated.

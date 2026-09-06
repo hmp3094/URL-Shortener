@@ -62,8 +62,9 @@ migrations automatically on startup, and starts the API on `http://localhost:808
 
 ## Try it
 
-Open `http://localhost:8080/` in a browser — shorten a link and check its stats from there,
-no `curl` required.
+Open `http://localhost:8080/` in a browser — shorten a link and check its stats from there.
+
+![The shortening form and stats lookup, side by side](docs/scenarios/ui-main.png)
 
 To exercise the API directly instead:
 
