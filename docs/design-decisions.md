@@ -267,12 +267,36 @@ Docker-mapped port, or a future real domain — no configuration step required.
 setup step for this scope; can be introduced later if the service ever sits behind a reverse
 proxy that changes the externally visible host.
 
+## Web UI
+
+`GET /` serves a hand-written `index.html`/`style.css`/`app.js`, calling the existing
+`POST /api/links` and `GET /api/links/{code}/stats` endpoints via `fetch()` — no frontend
+framework, no bundler, no build step. This mirrors every prior dependency decision in this
+project: an in-process cache instead of Redis, a hand-rolled rate limiter instead of a library.
+The page has exactly two interactions against an API that already exists, with no client-side
+state management or component reuse complex enough to justify a framework, and a build pipeline
+would be the first one anywhere in this project (Maven builds the backend; nothing else runs
+Node).
+
+Serving it required removing `spring.web.resources.add-mappings: false` from
+`application.yml`, restoring Spring Boot's default static-resource serving (previously disabled
+since this was an API-only service with nothing to serve). This is safe alongside the redirect
+route's own catch-all-shaped mapping: every static filename this page adds contains a `.`, which
+the short-code/alias character set excludes — the same property that already keeps
+`/swagger-ui.html` safe from that route — and the bare root path is below the redirect route's
+minimum length, so the two can never collide.
+
+**Alternative considered**: Thymeleaf server-rendered templates — rejected because nothing on
+this page needs server-side rendering; every value shown is fetched client-side after the page
+has already loaded, so a templating engine would add a dependency without removing any actual
+complexity.
+
 ## Project layout
 
-Single Maven/Spring Boot module at the repository root — this is an API-only backend with no
-frontend. Packages are organized by feature area (`link`, `validation`, `ratelimit`, `config`,
-`common`) rather than by technical layer, keeping each concern's controller/service/repository
-together.
+Single Maven/Spring Boot module at the repository root. Packages are organized by feature area
+(`link`, `validation`, `ratelimit`, `config`, `common`) rather than by technical layer, keeping
+each concern's controller/service/repository together; the web UI's static assets live under
+`src/main/resources/static/`, Spring Boot's own convention, needing no custom wiring.
 
 ```text
 pom.xml

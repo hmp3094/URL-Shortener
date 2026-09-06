@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Link Shortener</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <h1>Shorten a link</h1>
+      <p class="subtitle">Paste a long URL, get a short one back.</p>
+    </header>
+
+    <main class="stack">
+      <section id="shorten-section" class="card" aria-labelledby="shorten-heading">
+        <h2 id="shorten-heading">Create a short link</h2>
+        <form id="shorten-form" novalidate>
+          <div class="field">
+            <label for="url-input">Long URL</label>
+            <input type="url" id="url-input" name="url" placeholder="https://example.com/your/long/link" required />
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="alias-input">Custom alias <span class="optional">(optional)</span></label>
+              <input type="text" id="alias-input" name="alias" placeholder="my-link" maxlength="32" />
+            </div>
+            <div class="field">
+              <label for="expiration-select">Expires</label>
+              <select id="expiration-select" name="expiration">
+                <option value="">Never</option>
+                <option value="3600">In 1 hour</option>
+                <option value="86400">In 1 day</option>
+                <option value="604800">In 1 week</option>
+                <option value="2592000">In 1 month</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" id="shorten-submit" class="btn btn-primary">Shorten</button>
+          <p id="shorten-error" class="error-message" role="alert" hidden></p>
+        </form>
+
+        <div id="shorten-result" class="result" hidden>
+          <label for="short-url-output">Your short link</label>
+          <div class="copy-row">
+            <input type="text" id="short-url-output" readonly />
+            <button type="button" id="copy-button" class="btn btn-secondary">Copy</button>
+          </div>
+          <p id="copy-confirmation" class="confirmation" role="status" hidden></p>
+        </div>
+      </section>
+
+      <section id="stats-section" class="card" aria-labelledby="stats-heading">
+        <h2 id="stats-heading">Check a link's stats</h2>
+        <form id="stats-form" novalidate>
+          <div class="field">
+            <label for="code-input">Short code or alias</label>
+            <input type="text" id="code-input" name="code" placeholder="e.g. a1b2c3" required />
+          </div>
+          <button type="submit" id="stats-submit" class="btn btn-primary">Look up</button>
+        </form>
+
+        <div id="stats-result" class="result" hidden>
+          <dl class="stats-list">
+            <dt>Clicks</dt>
+            <dd id="stats-clicks"></dd>
+            <dt>Created</dt>
+            <dd id="stats-created"></dd>
+            <dt>Last used</dt>
+            <dd id="stats-last-used"></dd>
+            <dt>Expires</dt>
+            <dd id="stats-expires"></dd>
+          </dl>
+        </div>
+        <p id="stats-not-found" class="error-message" role="alert" hidden>No link found for that code.</p>
+      </section>
+    </main>
+
+    <footer class="page-footer">
+      <p>URL Shortener &mdash; <a href="/swagger-ui.html">API docs</a></p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

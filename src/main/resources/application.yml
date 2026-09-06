@@ -6,9 +6,6 @@ spring:
     name: url-shortener
   mvc:
     throw-exception-if-no-handler-found: true
-  web:
-    resources:
-      add-mappings: false
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/urlshortener}
     username: ${SPRING_DATASOURCE_USERNAME:urlshortener}

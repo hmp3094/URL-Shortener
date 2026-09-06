@@ -20,6 +20,17 @@ Swagger UI is available at `http://localhost:8080/swagger-ui.html` for interacti
 
 ## Try it
 
+`http://localhost:8080/` serves a small page for shortening a link (with an optional expiration)
+and looking up an existing code's stats — the easiest way to try the system, no `curl` required.
+Nothing to install or build; it's served directly by the running app.
+
+![The shortening form and stats lookup, side by side](scenarios/ui-main.png)
+
+## Exercise the API directly
+
+The scenarios below drive the same two endpoints the UI calls, but exactly — useful for
+verifying precise behavior (status codes, error shapes, edge cases) rather than casual use.
+
 > **Windows/PowerShell**: `curl` is aliased to `Invoke-WebRequest`, which doesn't support `-i`,
 > `-X`, or `-d` the way real curl does, and the `\` line continuations below are a bash-ism.
 > Use `curl.exe` explicitly and put each command on one line, e.g.
