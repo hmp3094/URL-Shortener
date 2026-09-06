@@ -27,7 +27,14 @@ public class ShortLinkService {
     /**
      * Creates a short link for {@code longUrl} with no expiration. See
      * {@link #create(String, Long)}.
+     *
+     * <p>Annotated {@code @Transactional} in its own right, not just inherited from the method it
+     * delegates to: calling {@code create(longUrl, null)} from here is a same-class
+     * self-invocation, which bypasses Spring's proxy and therefore that method's own
+     * {@code @Transactional} advice entirely. Without this annotation, {@code deleteIfExpired}'s
+     * {@code @Modifying} query would run with no active transaction and fail.
      */
+    @Transactional
     public ShortLink create(String longUrl) {
         return create(longUrl, null);
     }
