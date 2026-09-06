@@ -115,7 +115,6 @@ existing API with nothing added:
 
 ![Stats for a just-created link showing zero clicks](ui-stats.png)
 
-## Risks / limitations
 
 - The custom-alias field on the shortening form is currently a no-op on this branch: `main` (and
   therefore `feature/web-ui`) doesn't include the custom-alias feature, and Spring Boot's default
