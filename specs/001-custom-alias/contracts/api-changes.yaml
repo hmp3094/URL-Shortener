@@ -1,0 +1,58 @@
+# Fragment to merge into docs/api.yaml before implementation begins (Principle V: contract
+# before implementation — merging this ahead of code, not alongside/after it, corrects the
+# pattern flagged as a deviation on the two prior features).
+#
+# Merge instructions:
+#   - CreateLinkRequest: add the `alias` property shown below to the existing schema.
+#   - POST /api/links: add the two new 409 responses shown below to the existing operation.
+#   - components/schemas: add AliasAlreadyTakenError and UrlAlreadyShortenedError, or simply
+#     reuse the existing ErrorResponse schema for both (shown here reusing it, since neither
+#     needs fields beyond error/message/timestamp).
+
+paths:
+  /api/links:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLinkRequest'
+      responses:
+        '409':
+          description: >
+            Either the requested alias is already in use (`error: ALIAS_TAKEN`), or the
+            destination URL already has a live short link under a different code and an alias
+            was requested (`error: URL_ALREADY_SHORTENED`). The two are distinguished by the
+            `error` field, never by status code alone.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                aliasTaken:
+                  value:
+                    error: ALIAS_TAKEN
+                    message: "Alias 'promo' is already in use"
+                    timestamp: "2026-09-04T12:00:00Z"
+                urlAlreadyShortened:
+                  value:
+                    error: URL_ALREADY_SHORTENED
+                    message: "This URL already has a short link under a different code"
+                    timestamp: "2026-09-04T12:00:00Z"
+
+components:
+  schemas:
+    CreateLinkRequest:
+      properties:
+        alias:
+          type: string
+          nullable: true
+          minLength: 3
+          maxLength: 32
+          pattern: '^[A-Za-z0-9_-]{3,32}$'
+          description: >
+            Optional. A caller-chosen short code to use instead of an auto-generated one.
+            Letters, digits, hyphens, and underscores only; 3-32 characters. Matching is
+            case-insensitive. Reserved names (e.g. api, actuator, health, error, swagger-ui)
+            are rejected. Omit to receive an auto-generated code (unchanged default behavior).
+          example: "summer-sale"
