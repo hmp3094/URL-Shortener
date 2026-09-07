@@ -53,8 +53,9 @@ to the merged codebase rather than baked into any one scenario.
   layer, `ShortLinkService`/`ShortLinkRepository`/`ShortLink` as the persistence-touching core,
   validation and rate-limiting as isolated, dependency-free modules.
 - **Schema**: 3 Flyway migrations (`V1`–`V3`), each with a documented manual rollback plan.
-- **Tests**: 37+ unit tests (no external dependencies) plus a full contract/integration suite per
-  endpoint (blocked from running via `mvn test` on this machine — see Limitations).
+- **Tests**: unit tests (no external dependencies) plus a full contract/integration suite per
+  endpoint, all runnable via `mvn test` against a real embedded Postgres instance — no Docker
+  required (see `design-decisions.md`'s Testing section).
 - **Docs**: `requirements.md`, `design-decisions.md`, `data-model.md`, `api.yaml`,
   `getting-started.md`, `performance.md`, `architecture-overview.md` (this summary's companion),
   three scenario writeups under `docs/scenarios/`.
@@ -110,9 +111,6 @@ against baseline for every change that touched that path (`docs/performance.md`)
 
 ## Limitations
 
-- **Testcontainers doesn't run on this development machine** — a Docker Desktop/docker-java
-  version incompatibility, root-caused and documented, not a code defect. Contract/integration
-  tests are written and correct but validated manually via `docker compose` instead of `mvn test`.
 - **Test-First was not practiced** for the click-analytics and link-expiration features — tests
   were written after the implementation, not before, violating the constitution's own
   NON-NEGOTIABLE principle. Logged explicitly rather than quietly excused; applies strictly to all
