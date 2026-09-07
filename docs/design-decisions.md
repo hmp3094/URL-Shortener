@@ -250,17 +250,10 @@ embedded-postgres (an actual Postgres binary run directly on the host, wired in 
 
 Redirect and creation logic need integration tests against a real datastore, not mocks alone.
 Testcontainers (a Docker-based disposable Postgres container) was the original choice here, but
-was replaced after a real, reproducible problem: on this project's development machine, `mvn
-test` ran unit tests successfully, but every Testcontainers-backed contract/integration test
-failed at container startup with "Could not find a valid Docker environment." Root cause
-isolated: that particular Docker Desktop version's daemon returned a response to the Java Docker
-client's connectivity check that the client library couldn't parse — confirmed via direct HTTP
-calls that the daemon itself responded correctly to the exact same request made with a plain HTTP
-client, over both the named pipe and a TCP endpoint. Rather than depend on Docker being installed
-and version-compatible on every machine that runs `mvn test` at all, integration tests now run
-against embedded-postgres instead, which needs nothing beyond Java and Maven. `docker compose up
---build` (using the Docker CLI directly, unaffected by the Java-client issue) remains how the
-full system is validated end-to-end (see `getting-started.md`).
+was replaced with embedded-postgres so that running `mvn test` needs nothing beyond Java and
+Maven — no Docker installation or version compatibility to worry about on any machine. `docker
+compose up --build` remains how the full system is validated end-to-end (see
+`getting-started.md`).
 
 **Alternative considered**: an in-memory H2 substitute for tests — rejected because it doesn't
 exercise real Postgres behavior (e.g., the `ON CONFLICT` concurrency handling above and the
