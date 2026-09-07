@@ -244,27 +244,21 @@ conventional for URL shorteners, no real benefit.
 ## Testing
 
 JUnit 5 + Mockito (both already bundled via `spring-boot-starter-test`, no separate dependency)
-for unit tests; Testcontainers (a real, disposable Postgres container via Spring Boot's
-`@ServiceConnection` support) for integration and contract tests.
+for unit tests; a real Postgres instance for integration and contract tests, via Zonky's
+embedded-postgres (an actual Postgres binary run directly on the host, wired in through
+`@DynamicPropertySource` — see `AbstractIntegrationTest`).
 
-Redirect and creation logic need integration tests against a real datastore, not mocks alone —
-Testcontainers is the standard way to get a real, disposable Postgres instance in CI and locally
-without a shared test database.
+Redirect and creation logic need integration tests against a real datastore, not mocks alone.
+Testcontainers (a Docker-based disposable Postgres container) was the original choice here, but
+was replaced with embedded-postgres so that running `mvn test` needs nothing beyond Java and
+Maven — no Docker installation or version compatibility to worry about on any machine. `docker
+compose up --build` remains how the full system is validated end-to-end (see
+`getting-started.md`).
 
 **Alternative considered**: an in-memory H2 substitute for tests — rejected because it doesn't
-exercise real Postgres behavior (e.g., the `ON CONFLICT` concurrency handling above is
-Postgres-specific SQL).
-
-**Known environment issue (unresolved, documented)**: on the machine this was built on, `mvn test`
-runs the unit tests successfully, but every Testcontainers-backed contract/integration test fails
-at container startup with "Could not find a valid Docker environment." Root cause isolated: this
-particular Docker Desktop version's daemon returns a response to the Java Docker client's
-connectivity check that the client library can't parse — confirmed via direct HTTP calls that the
-daemon itself responds correctly to the exact same request made with a plain HTTP client, over
-both the named pipe and a TCP endpoint. This is specific to the Java Docker client library, not a
-Docker Desktop misconfiguration, and it doesn't affect `docker compose up --build`, which uses
-the Docker CLI directly and was used instead to validate the running application end-to-end (see
-`getting-started.md`).
+exercise real Postgres behavior (e.g., the `ON CONFLICT` concurrency handling above and the
+regex `CHECK` constraints on `short_code` are Postgres-specific SQL); embedded-postgres keeps
+that fidelity while still removing the Docker dependency.
 
 ## Containerization
 
@@ -349,12 +343,13 @@ src/main/java/com/urlshortener/
 
 src/main/resources/
 ├── application.yml
+├── static/            (the web UI: index.html, style.css, app.js)
 └── db/migration/
-    └── V1__create_short_links_table.sql
+    └── V1__create_short_links_table.sql, V2__..., V3__..., V4__...
 
 src/test/java/com/urlshortener/
 ├── contract/    (API-shape tests against the OpenAPI contract)
-├── integration/ (Testcontainers-backed Postgres tests)
+├── integration/ (integration tests against a real, embedded Postgres)
 ├── unit/         (pure logic, no Spring context)
 └── support/       (shared test base class)
 ```

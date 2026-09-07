@@ -89,13 +89,13 @@ schema/persistence/security-relevant code → implement → validate against a r
 not just unit tests → document the decision and its rationale in `docs/scenarios/` or
 `docs/design-decisions.md`, whichever the change actually was.
 
-**Validation approach.** Contract/integration tests are written for every endpoint, but can't
-execute via `mvn test` on this machine — a pre-existing Testcontainers/Docker Desktop
-compatibility issue (documented in `design-decisions.md`'s Testing section), not something this
-project's code caused. The substitute: `docker compose up --build` against the real app and a
-real Postgres instance, exercised with `curl` for every scenario the automated tests also cover.
-This wasn't just a formality — it's what actually caught a real concurrency bug in the link
-expiration feature (a `WITH ... DELETE ... INSERT` statement that looked atomic and wasn't; see
+**Validation approach.** Contract/integration tests exist for every endpoint and run via
+`mvn test` against a real Postgres instance (Zonky's embedded-postgres — see
+`design-decisions.md`'s Testing section for why this replaced an earlier Testcontainers/Docker
+Desktop compatibility issue). Full end-to-end validation is still done against the real running
+system too, via `docker compose up --build` exercised with `curl`, not as a formality — it's what
+actually caught a real concurrency bug in the link expiration feature (a `WITH ... DELETE ...
+INSERT` statement that looked atomic and wasn't; see
 `docs/scenarios/ambiguous-link-expiration.md`) that reasoning about the SQL alone had missed.
 
 **Governance.** `.specify/memory/constitution.md` is treated as binding, not aspirational —
